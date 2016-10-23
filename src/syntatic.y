@@ -284,6 +284,11 @@ EXPR 		: EXPR '+' EXPR {
 					"\tint " + var + " = " + $1.label + " || " + $3.label + ";\n";
 				$$.label = var;
 			}
+			| '(' EXPR ')' {
+				$$.type = $2.type;
+				$$.label = $2.label;
+				$$.transl = $2.transl;
+			}
 			| VALUE_OR_ID "as" TYPE {
 				string var = getNextVar();
 				string type = opMap[$3.transl + "cast" + $1.type];
@@ -300,15 +305,6 @@ EXPR 		: EXPR '+' EXPR {
 				}
 			}
 			| VALUE_OR_ID;
-			
-TYPE		: TK_INT_TYPE
-			| TK_FLOAT_TYPE
-			| TK_DOUBLE_TYPE
-			| TK_LONG_TYPE
-			| TK_CHAR_TYPE
-			| TK_STRING_TYPE
-			| TK_BOOL_TYPE
-			;
 			
 VALUE_OR_ID	: TK_NUM {
 				string var = getNextVar();
@@ -343,6 +339,16 @@ VALUE_OR_ID	: TK_NUM {
 					$$.transl = "ERROR";
 				}
 			}
+			;
+			
+TYPE		: TK_INT_TYPE
+			| TK_FLOAT_TYPE
+			| TK_DOUBLE_TYPE
+			| TK_LONG_TYPE
+			| TK_CHAR_TYPE
+			| TK_STRING_TYPE
+			| TK_BOOL_TYPE
+			;
 
 %%
 
