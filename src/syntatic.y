@@ -51,9 +51,8 @@ void yyerror(string);
 
 %left '+' '-'
 %left '*' '/'
-%left '<' '>' "<=" ">="
-%left "!=" "=="
 %left "and" "or"
+%nonassoc '<' '>' "<=" ">=" "!=" "=="
 
 %%
 
