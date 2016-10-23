@@ -148,7 +148,7 @@ ATTRIBUTION	: TYPE TK_ID '=' EXPR {
 EXPR 		: EXPR '+' EXPR {
 				string var = getNextVar();
 				
-				string resType = opMap[$1.type + "+" + $2.type];
+				string resType = opMap[$1.type + "+" + $3.type];
 				
 				if (resType.size()) {
 					$$.type = resType;
@@ -164,7 +164,7 @@ EXPR 		: EXPR '+' EXPR {
 			| EXPR '-' EXPR {
 				string var = getNextVar();
 				
-				$$.type = opMap[$1.type + "-" + $2.type];
+				$$.type = opMap[$1.type + "-" + $3.type];
 				$$.transl = $1.transl + $3.transl + 
 					"\t" + $$.type + " " + var + " = " + $1.label + " - " + $3.label + ";\n";
 				$$.label = var;
@@ -172,7 +172,7 @@ EXPR 		: EXPR '+' EXPR {
 			| EXPR '*' EXPR {
 				string var = getNextVar();
 				
-				$$.type = opMap[$1.type + "*" + $2.type];
+				$$.type = opMap[$1.type + "*" + $3.type];
 				$$.transl = $1.transl + $3.transl + 
 					"\t" + $$.type + " " + var + " = " + $1.label + " * " + $3.label + ";\n";
 				$$.label = var;
@@ -180,7 +180,7 @@ EXPR 		: EXPR '+' EXPR {
 			| EXPR '/' EXPR {
 				string var = getNextVar();
 				
-				$$.type = opMap[$1.type + "/" + $2.type];
+				$$.type = opMap[$1.type + "/" + $3.type];
 				$$.transl = $1.transl + $3.transl + 
 					"\t" + $$.type + " " + var + " = " + $1.label + " / " + $3.label + ";\n";
 				$$.label = var;
