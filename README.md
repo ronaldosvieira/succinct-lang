@@ -13,5 +13,5 @@ func fibonacci(int n) int:
   else:
     fibonacci(n - 1) + fibonacci(n - 2)
 
-print(fibonacci(10))
+write fibonacci(10)
 ```
