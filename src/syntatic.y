@@ -168,7 +168,7 @@ ATTRIBUTION	: TYPE TK_ID '=' EXPR {
 					
 					varMap[$2.label] = {$1.transl, var};
 					
-					$$.transl = "\t" + $1.transl + " " + $2.label + " = " + 
+					$$.transl = "\t" + $1.transl + " " + var + " = " + 
 						padraoMap[$1.transl] + ";\n";
 					$$.label = var;
 					$$.type = $1.transl;
