@@ -26,4 +26,6 @@ int main() {
 	(float) 3 / 2;
 	
 	write((float) j);
+	write(b);
+	write(true);
 }

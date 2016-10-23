@@ -92,7 +92,7 @@ STATEMENT 	: EXPR ';' {
 WRITE		: TK_WRITE '(' EXPR ')' {
 				string format, label;
 				
-				$$.transl = "";
+				$$.transl = $3.transl;
 				label = $3.label;
 				
 				if ($3.type == "int") format = "%d";
@@ -100,15 +100,15 @@ WRITE		: TK_WRITE '(' EXPR ')' {
 				else if ($3.type == "double") format = "%lf";
 				else if ($3.type == "char") format = "%c";
 				else if ($3.type == "bool") {
-					$$.transl += "\tchar *_bool" + $3.label + ";";
-					$$.transl += "\tif (" + $3.label + ") *_bool" + $3.label + " = \"true\";";
-					$$.transl += "\telse *_bool" + $3.label + " = \"false\";";
+					$$.transl += "\tchar *_bool_" + $3.label + ";\n";
+					$$.transl += "\tif (" + $3.label + ") strcpy(_bool_" + $3.label + ", \"true\");\n";
+					$$.transl += "\telse strcpy(_bool_" + $3.label + ", \"false\");\n";
 					
-					format = "%d";
-					label = "_bool" + $3.label;
+					format = "%s";
+					label = "_bool_" + $3.label;
 				}
 				
-				$$.transl += $3.transl + "\tprintf(\"" + format + "\", " + label + ");\n";
+				$$.transl += "\tprintf(\"" + format + "\\n\", " + label + ");\n";
 			};
 			
 ATTRIBUTION	: TYPE TK_ID '=' EXPR {
