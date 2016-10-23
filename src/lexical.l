@@ -51,6 +51,7 @@ COMML	    "//".*\n
 "main"		{ return TK_MAIN; }
 
 "write"     { return TK_WRITE; }
+"as"        { return TK_AS; }
 
 "int"		{ yylval.transl = yytext; return TK_INT_TYPE; }
 "float"		{ yylval.transl = yytext; return TK_FLOAT_TYPE; }

@@ -18,14 +18,14 @@ int main() {
 	4 or 2;
 	4 < 2;
 	
-	int l = (int) 1.0f;
+	int l = 1.0f as int;
 	int j = 2;
 	
-	(double) 2.0f;
+	2.0f as double;
 	
-	(float) 3 / 2;
+	3 as float / 2;
 	
-	write((float) j);
+	write(j as float);
 	write(b);
 	write(true);
 }

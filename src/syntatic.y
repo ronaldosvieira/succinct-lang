@@ -36,6 +36,7 @@ void yyerror(string);
 %}
 
 %token TK_NUM TK_WRITE TK_CHAR TK_BOOL
+%token TK_AS "as"
 %token TK_MAIN TK_ID TK_INT_TYPE TK_FLOAT_TYPE TK_CHAR_TYPE
 %token TK_DOUBLE_TYPE TK_LONG_TYPE TK_STRING_TYPE TK_BOOL_TYPE
 %token TK_FIM TK_ERROR
@@ -282,14 +283,14 @@ EXPR 		: EXPR '+' EXPR {
 					"\t" + $$.type + " " + var + " = " + $1.label + " || " + $3.label + ";\n";
 				$$.label = var;
 			}
-			| '(' TYPE ')' VALUE_OR_ID {
+			| VALUE_OR_ID "as" TYPE {
 				string var = getNextVar();
-				string type = opMap[$2.transl + "cast" + $4.type];
+				string type = opMap[$3.transl + "cast" + $1.type];
 				
 				if (type.size()) {
 					$$.type = type;
-					$$.transl = $4.transl + 
-						"\t" + $$.type + " " + var + " = (" + $2.transl + ") " + $4.label + ";\n";
+					$$.transl = $1.transl + 
+						"\t" + $$.type + " " + var + " = (" + $3.transl + ") " + $1.label + ";\n";
 					$$.label = var;
 				} else {
 					// throw compile error
