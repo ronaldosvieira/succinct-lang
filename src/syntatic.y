@@ -225,7 +225,7 @@ EXPR 		: EXPR '+' EXPR {
 				
 				$$.type = opMap[$1.type + "<" + $3.type];
 				$$.transl = $1.transl + $3.transl + 
-					"\t" + $$.type + " " + var + " = " + $1.label + " < " + $3.label + ";\n";
+					"\tint " + var + " = " + $1.label + " < " + $3.label + ";\n";
 				$$.label = var;
 			}
 			| EXPR '>' EXPR {
@@ -233,7 +233,7 @@ EXPR 		: EXPR '+' EXPR {
 				
 				$$.type = opMap[$1.type + ">" + $3.type];
 				$$.transl = $1.transl + $3.transl + 
-					"\t" + $$.type + " " + var + " = " + $1.label + " > " + $3.label + ";\n";
+					"\tint " + var + " = " + $1.label + " > " + $3.label + ";\n";
 				$$.label = var;
 			}
 			| EXPR "<=" EXPR {
@@ -241,7 +241,7 @@ EXPR 		: EXPR '+' EXPR {
 				
 				$$.type = opMap[$1.type + "<=" + $3.type];
 				$$.transl = $1.transl + $3.transl + 
-					"\t" + $$.type + " " + var + " = " + $1.label + " <= " + $3.label + ";\n";
+					"\tint " + var + " = " + $1.label + " <= " + $3.label + ";\n";
 				$$.label = var;
 			}
 			| EXPR ">=" EXPR {
@@ -249,7 +249,7 @@ EXPR 		: EXPR '+' EXPR {
 				
 				$$.type = opMap[$1.type + ">=" + $3.type];
 				$$.transl = $1.transl + $3.transl + 
-					"\t" + $$.type + " " + var + " = " + $1.label + " >= " + $3.label + ";\n";
+					"\tint " + var + " = " + $1.label + " >= " + $3.label + ";\n";
 				$$.label = var;
 			}
 			| EXPR "==" EXPR {
@@ -257,7 +257,7 @@ EXPR 		: EXPR '+' EXPR {
 				
 				$$.type = opMap[$1.type + "==" + $3.type];
 				$$.transl = $1.transl + $3.transl + 
-					"\t" + $$.type + " " + var + " = " + $1.label + " == " + $3.label + ";\n";
+					"\tint " + var + " = " + $1.label + " == " + $3.label + ";\n";
 				$$.label = var;
 			}
 			| EXPR "!=" EXPR {
@@ -265,7 +265,7 @@ EXPR 		: EXPR '+' EXPR {
 				
 				$$.type = opMap[$1.type + "!=" + $3.type];
 				$$.transl = $1.transl + $3.transl + 
-					"\t" + $$.type + " " + var + " = " + $1.label + " != " + $3.label + ";\n";
+					"\tint " + var + " = " + $1.label + " != " + $3.label + ";\n";
 				$$.label = var;
 			}
 			| EXPR "and" EXPR {
@@ -273,7 +273,7 @@ EXPR 		: EXPR '+' EXPR {
 				
 				$$.type = opMap[$1.type + "&&" + $3.type];
 				$$.transl = $1.transl + $3.transl + 
-					"\t" + $$.type + " " + var + " = " + $1.label + " && " + $3.label + ";\n";
+					"\tint " + var + " = " + $1.label + " && " + $3.label + ";\n";
 				$$.label = var;
 			}
 			| EXPR "or" EXPR {
@@ -281,7 +281,7 @@ EXPR 		: EXPR '+' EXPR {
 				
 				$$.type = opMap[$1.type + "||" + $3.type];
 				$$.transl = $1.transl + $3.transl + 
-					"\t" + $$.type + " " + var + " = " + $1.label + " || " + $3.label + ";\n";
+					"\tint " + var + " = " + $1.label + " || " + $3.label + ";\n";
 				$$.label = var;
 			}
 			| VALUE_OR_ID "as" TYPE {
@@ -291,7 +291,7 @@ EXPR 		: EXPR '+' EXPR {
 				if (type.size()) {
 					$$.type = type;
 					$$.transl = $1.transl + 
-						"\t" + $$.type + " " + var + " = (" + $3.transl + ") " + $1.label + ";\n";
+						"\tint " + var + " = (" + $3.transl + ") " + $1.label + ";\n";
 					$$.label = var;
 				} else {
 					// throw compile error
