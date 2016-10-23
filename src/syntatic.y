@@ -35,7 +35,7 @@ int yylex(void);
 void yyerror(string);
 %}
 
-%token TK_NUM TK_CHAR TK_BOOL
+%token TK_NUM TK_WRITE TK_CHAR TK_BOOL
 %token TK_MAIN TK_ID TK_INT_TYPE TK_FLOAT_TYPE TK_CHAR_TYPE
 %token TK_DOUBLE_TYPE TK_LONG_TYPE TK_STRING_TYPE TK_BOOL_TYPE
 %token TK_FIM TK_ERROR
@@ -84,6 +84,31 @@ STATEMENT 	: EXPR ';' {
 			}
 			| ATTRIBUTION ';' {
 				$$.transl = $1.transl;
+			}
+			| WRITE ';' {
+				$$.transl = $1.transl;
+			};
+			
+WRITE		: TK_WRITE '(' EXPR ')' {
+				string format, label;
+				
+				$$.transl = "";
+				label = $3.label;
+				
+				if ($3.type == "int") format = "%d";
+				else if ($3.type == "float") format = "%f";
+				else if ($3.type == "double") format = "%lf";
+				else if ($3.type == "char") format = "%c";
+				else if ($3.type == "bool") {
+					$$.transl += "\tchar *_bool" + $3.label + ";";
+					$$.transl += "\tif (" + $3.label + ") *_bool" + $3.label + " = \"true\";";
+					$$.transl += "\telse *_bool" + $3.label + " = \"false\";";
+					
+					format = "%d";
+					label = "_bool" + $3.label;
+				}
+				
+				$$.transl += $3.transl + "\tprintf(\"" + format + "\", " + label + ");\n";
 			};
 			
 ATTRIBUTION	: TYPE TK_ID '=' EXPR {
