@@ -51,10 +51,11 @@ void yyerror(string);
 
 %start S
 
+%nonassoc '<' '>' "<=" ">=" "!=" "=="
+%left "and" "or"
 %left '+' '-'
 %left '*' '/'
-%left "and" "or"
-%nonassoc '<' '>' "<=" ">=" "!=" "=="
+%left "as"
 
 %%
 
@@ -289,7 +290,7 @@ EXPR 		: EXPR '+' EXPR {
 				$$.label = $2.label;
 				$$.transl = $2.transl;
 			}
-			| VALUE_OR_ID "as" TYPE {
+			| EXPR "as" TYPE {
 				string var = getNextVar();
 				string type = opMap[$3.transl + "cast" + $1.type];
 				

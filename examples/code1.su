@@ -10,9 +10,7 @@ int main() {
 	k = 'z';
 	
 	float a = 1.0f;
-	
 	a = 2.0;
-	
 	float i;
 	
 	4 and 2 or 3;
@@ -21,10 +19,11 @@ int main() {
 	
 	int l = 1.0f as int;
 	int j = 2;
-	
 	2.0f as double;
 	
 	3 as float / 2;
+	3 / 2 as float;
+	(3 / 2) as float;
 	
 	write j as float;
 	write b;
