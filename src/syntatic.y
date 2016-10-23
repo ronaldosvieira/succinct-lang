@@ -258,6 +258,21 @@ EXPR 		: EXPR '+' EXPR {
 					"\t" + $$.type + " " + var + " = " + $1.label + " || " + $3.label + ";\n";
 				$$.label = var;
 			}
+			| '(' TYPE ')' VALUE_OR_ID {
+				string var = getNextVar();
+				string type = opMap[$2.type + "cast" + $4.type];
+				
+				if (type.size()) {
+					$$.type = type;
+					$$.transl = $4.transl + 
+						"\t" + $$.type + " " + var + " = (" + $2.transl + ") " + $4.label + ";\n";
+					$$.label = var;
+				} else {
+					// throw compile error
+					$$.type = "ERROR";
+					$$.transl = "ERROR";
+				}
+			}
 			| VALUE_OR_ID;
 			
 TYPE		: TK_INT_TYPE
