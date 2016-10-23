@@ -264,15 +264,12 @@ int cast float int
 int cast double int
 int cast char int
 int cast bool int
-int cast int int
 float cast int float
 float cast float float
 float cast double float
 float cast char float
 float cast bool float
-float cast float float
 double cast float double
-double cast double double
 double cast int double
 double cast char double
 double cast bool double

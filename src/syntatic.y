@@ -260,7 +260,7 @@ EXPR 		: EXPR '+' EXPR {
 			}
 			| '(' TYPE ')' VALUE_OR_ID {
 				string var = getNextVar();
-				string type = opMap[$2.type + "cast" + $4.type];
+				string type = opMap[$2.transl + "cast" + $4.type];
 				
 				if (type.size()) {
 					$$.type = type;
