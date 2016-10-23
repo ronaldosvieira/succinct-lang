@@ -66,11 +66,12 @@ COMML	    "//".*\n
 [+\-*/=><]	{ return *yytext; }
 
 "=="|"eq"|"equals"  { return TK_EQ; }
-"!="|"neq"  { return TK_NOT; }
+"!="|"neq"  { return TK_NEQ; }
 ">="|"gte"  { return TK_GTE; }
 "<="|"lte"  { return TK_LTE; }
-"and"|"&&"  { return TK_AND; }
-"or"|"||"   { return TK_OR; }
+"&&"|"and"  { return TK_AND; }
+"||"|"or"   { return TK_OR; }
+"!"|"not"   { return TK_NOT; }
 
 {INT}		{
     yylval.transl = "";

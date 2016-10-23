@@ -30,4 +30,7 @@ int main() {
 	write j as float;
 	write b;
 	write true;
+	
+	b = not not b;
+	b = !!b;
 }

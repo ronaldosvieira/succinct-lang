@@ -44,14 +44,16 @@ void yyerror(string);
 %token TK_BREAK
 %token TK_AND "and"
 %token TK_OR "or"
+%token TK_NOT "not"
 %token TK_GTE ">="
 %token TK_LTE "<="
-%token TK_NOT "!="
+%token TK_NEQ "!="
 %token TK_EQ "=="
 
 %start S
 
 %nonassoc '<' '>' "<=" ">=" "!=" "=="
+%right "not"
 %left "and" "or"
 %left '+' '-'
 %left '*' '/'
@@ -284,6 +286,20 @@ EXPR 		: EXPR '+' EXPR {
 				$$.transl = $1.transl + $3.transl + 
 					"\tint " + var + " = " + $1.label + " || " + $3.label + ";\n";
 				$$.label = var;
+			}
+			| "not" EXPR {
+				string var = getNextVar();
+				
+				if ($2.type == "bool") {
+					$$.type = $2.type;
+					$$.label = var;
+					$$.transl = $2.transl +
+						"\tint " + var + " = !" + $2.label + ";\n";
+				} else {
+					// throw compile error
+					$$.type = "ERROR";
+					$$.transl = "ERROR";
+				}
 			}
 			| '(' EXPR ')' {
 				$$.type = $2.type;
