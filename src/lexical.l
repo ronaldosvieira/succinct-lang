@@ -60,7 +60,14 @@ COMML	    "//".*\n
 
 [(){}[\];,]	{ return *yytext; }
 
-[+\-*/=]	{ return *yytext; }
+[+\-*/=><]	{ return *yytext; }
+
+"=="        { return TK_EQ; }
+"!="        { return TK_NOT; }
+">="        { return TK_GTE; }
+"<="        { return TK_LTE; }
+"and"|"&&"  { return TK_AND; }
+"or"|"||"   { return TK_OR; }
 
 {INT}		{
     yylval.transl = "";
