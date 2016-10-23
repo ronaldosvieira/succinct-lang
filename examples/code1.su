@@ -25,7 +25,7 @@ int main() {
 	
 	3 as float / 2;
 	
-	write(j as float);
-	write(b);
-	write(true);
+	write j as float;
+	write b;
+	write true;
 }

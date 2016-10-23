@@ -35,8 +35,9 @@ int yylex(void);
 void yyerror(string);
 %}
 
-%token TK_NUM TK_WRITE TK_CHAR TK_BOOL
+%token TK_NUM TK_CHAR TK_BOOL
 %token TK_AS "as"
+%token TK_WRITE "write"
 %token TK_MAIN TK_ID TK_INT_TYPE TK_FLOAT_TYPE TK_CHAR_TYPE
 %token TK_DOUBLE_TYPE TK_LONG_TYPE TK_STRING_TYPE TK_BOOL_TYPE
 %token TK_FIM TK_ERROR
@@ -59,7 +60,7 @@ void yyerror(string);
 
 S 			: TK_INT_TYPE TK_MAIN '(' ')' BLOCK {
 				cout << 
-				"/* Succinct lang */" << endl <<
+				"/* Succinct lang */" << endl << endl <<
 				"#include <iostream>" << endl <<
 				"#include <string.h>" << endl <<
 				"#include <stdio.h>" << endl <<
@@ -89,23 +90,23 @@ STATEMENT 	: EXPR ';' {
 				$$.transl = $1.transl;
 			};
 			
-WRITE		: TK_WRITE '(' EXPR ')' {
+WRITE		: "write" EXPR {
 				string format, label;
 				
-				$$.transl = $3.transl;
-				label = $3.label;
+				$$.transl = $2.transl;
+				label = $2.label;
 				
-				if ($3.type == "int") format = "%d";
-				else if ($3.type == "float") format = "%f";
-				else if ($3.type == "double") format = "%lf";
-				else if ($3.type == "char") format = "%c";
-				else if ($3.type == "bool") {
-					$$.transl += "\tchar *_bool_" + $3.label + ";\n";
-					$$.transl += "\tif (" + $3.label + ") strcpy(_bool_" + $3.label + ", \"true\");\n";
-					$$.transl += "\telse strcpy(_bool_" + $3.label + ", \"false\");\n";
+				if ($2.type == "int") format = "%d";
+				else if ($2.type == "float") format = "%f";
+				else if ($2.type == "double") format = "%lf";
+				else if ($2.type == "char") format = "%c";
+				else if ($2.type == "bool") {
+					$$.transl += "\tchar *_bool_" + $2.label + ";\n";
+					$$.transl += "\tif (" + $2.label + ") strcpy(_bool_" + $2.label + ", \"true\");\n";
+					$$.transl += "\telse strcpy(_bool_" + $2.label + ", \"false\");\n";
 					
 					format = "%s";
-					label = "_bool_" + $3.label;
+					label = "_bool_" + $2.label;
 				}
 				
 				$$.transl += "\tprintf(\"" + format + "\\n\", " + label + ");\n";
