@@ -274,18 +274,26 @@ EXPR 		: EXPR '+' EXPR {
 			| EXPR "and" EXPR {
 				string var = getNextVar();
 				
-				$$.type = opMap[$1.type + "&&" + $3.type];
-				$$.transl = $1.transl + $3.transl + 
+				if ($1.type == "bool" && $3.type == "bool") {
+					$$.type = "bool";
+					$$.transl = $1.transl + $3.transl + 
 					"\tint " + var + " = " + $1.label + " && " + $3.label + ";\n";
-				$$.label = var;
+					$$.label = var;
+				} else {
+					yyerror("Error: And operation between non-bool values.");
+				}
 			}
 			| EXPR "or" EXPR {
 				string var = getNextVar();
 				
-				$$.type = opMap[$1.type + "||" + $3.type];
-				$$.transl = $1.transl + $3.transl + 
-					"\tint " + var + " = " + $1.label + " || " + $3.label + ";\n";
-				$$.label = var;
+				if ($1.type == "bool" && $3.type == "bool") {
+					$$.type = "bool";
+					$$.transl = $1.transl + $3.transl + 
+						"\tint " + var + " = " + $1.label + " || " + $3.label + ";\n";
+					$$.label = var;
+				} else {
+					yyerror("Error: Or operation between non-bool values.");
+				}
 			}
 			| "not" EXPR {
 				string var = getNextVar();

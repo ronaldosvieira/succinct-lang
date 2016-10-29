@@ -13,9 +13,9 @@ int main() {
 	a = 2.0;
 	float i;
 	
-	4 and 2 or 3;
-	4 && 2 || 3;
-	4 or 2;
+	true and true or false;
+	true && true || false;
+	false or true;
 	4 <= 2;
 	4 lte 2;
 	
