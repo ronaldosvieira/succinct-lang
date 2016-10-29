@@ -5,6 +5,7 @@
 #include <map>
 #include <fstream>
 #include <vector>
+#include <algorithm>
 
 #define YYSTYPE attributes
 
@@ -333,8 +334,17 @@ EXPR 		: EXPR '+' EXPR {
 			
 VALUE_OR_ID	: TK_NUM {
 				string var = getNextVar();
+				string value = $1.label;
 				
-				$$.transl = "\t" + $1.type + " " + var + " = " + $1.label + ";\n";
+				if ($1.type == "float") {
+					value = to_string(stof(value));
+				} else if ($1.type == "double") {
+					value = to_string(stod(value));
+				} else if ($1.type == "long") {
+					value = to_string(stol(value));
+				}
+				
+				$$.transl = "\t" + $1.type + " " + var + " = " + value + ";\n";
 				$$.label = var;
 			}
 			| TK_BOOL {
