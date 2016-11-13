@@ -50,8 +50,13 @@ COMML	    "//".*\n
 
 "main"		{ return TK_MAIN; }
 
+"if"        { return TK_IF; }
+"while"     { return TK_WHILE; }
+
 "write"     { return TK_WRITE; }
 "as"        { return TK_AS; }
+
+":"         { return TK_BSTART; }
 
 "int"		{ yylval.transl = yytext; return TK_INT_TYPE; }
 "float"		{ yylval.transl = yytext; return TK_FLOAT_TYPE; }

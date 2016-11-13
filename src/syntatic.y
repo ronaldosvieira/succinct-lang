@@ -31,21 +31,25 @@ map<string, string> opMap;
 map<string, var_info> varMap;
 map<string, string> padraoMap;
 int tempGen = 0;
+int tempLabel = 0;
 
 string getNextVar();
+string getNextLabel();
 
 int yylex(void);
 void yyerror(string);
 %}
 
 %token TK_NUM TK_CHAR TK_BOOL
+%token TK_IF "if"
+%token TK_WHILE "while"
 %token TK_AS "as"
 %token TK_WRITE "write"
 %token TK_CONST "const"
 %token TK_MAIN TK_ID TK_INT_TYPE TK_FLOAT_TYPE TK_CHAR_TYPE
 %token TK_DOUBLE_TYPE TK_LONG_TYPE TK_STRING_TYPE TK_BOOL_TYPE
 %token TK_FIM TK_ERROR
-%token TK_BREAK
+%token TK_BREAK TK_BSTART
 %token TK_AND "and"
 %token TK_OR "or"
 %token TK_XOR "xor"
@@ -102,7 +106,42 @@ STATEMENT 	: EXPR ';' {
 			}
 			| WRITE ';' {
 				$$.transl = $1.transl;
-			};
+			}
+			| CONTROL;
+			
+CONTROL		: "if" EXPR TK_BSTART BLOCK {
+				if ($2.type == "bool") {
+					string end = getNextLabel();
+					
+					$$.transl = $2.transl + 
+						"\t" + $2.label + " = !" + $2.label + ";\n" +
+						"\tif (" + $2.label + ") goto " + end + ";\n" +
+						$4.transl +
+						"\t" + end + ":\n";
+				} else {
+					// throw compile error
+					yyerror("Non-bool expression on if condition.");
+				}
+			}
+			| "while" EXPR TK_BSTART BLOCK {
+				if ($2.type == "bool") {
+					string var = getNextVar();
+					string begin = getNextLabel();
+					string end = getNextLabel();
+					
+					decls.push_back("\tint " + var + ";");
+					
+					$$.transl = $2.transl + 
+						begin + ":\t" + var + " = !" + $2.label + ";\n" +
+						"\tif (" + $2.label + ") goto " + end + ";\n" +
+						$4.transl +
+						"\tgoto " + begin + ";\n\t" + end + ":\n";
+				} else {
+					// throw compile error
+					yyerror("Non-bool expression on while condition.");
+				}
+			}
+			;
 			
 WRITE		: "write" EXPR {
 				string format, label;
@@ -754,4 +793,8 @@ void yyerror( string MSG ) {
 
 string getNextVar() {
     return "t" + to_string(tempGen++);
+}
+
+string getNextLabel() {
+	return "label" + to_string(tempLabel++);
 }
