@@ -131,13 +131,12 @@ ATTRIBUTION	: TYPE TK_ID '=' EXPR {
 						varMap[$2.label] = {$1.transl, $4.label};
 					} else {
 						// throw compile error
-						$$.type = "ERROR";
-						$$.transl = "ERROR";
+						yyerror("Variable assignment with incompatible types " 
+							+ $4.type + " and " + $1.transl + ".");
 					}
 				} else {
 					// throw compile error
-					$$.type = "ERROR";
-					$$.transl = "ERROR";
+					yyerror("Variable " + $2.label + " redeclared.");
 				}
 			}
 			| TK_ID '=' EXPR {
@@ -165,14 +164,13 @@ ATTRIBUTION	: TYPE TK_ID '=' EXPR {
 							varMap[$1.label] = {info.type, var};
 						} else {
 							// throw compile error
-							$$.type = "ERROR";
-							$$.transl = "ERROR";
+							yyerror("Variable assignment with incompatible types " 
+								+ info.type + " and " + $3.type + ".");
 						}
 					}
 				} else {
 					// throw compile error
-					$$.type = "ERROR";
-					$$.transl = "ERROR";
+					yyerror("Variable " + $1.label + " not declared.");
 				}
 			}
 			| TYPE TK_ID {
@@ -188,8 +186,7 @@ ATTRIBUTION	: TYPE TK_ID '=' EXPR {
 					$$.type = $1.transl;
 				} else {
 					// throw compile error
-					$$.type = "ERROR";
-					$$.transl = "ERROR";
+					yyerror("Variable " + $2.label + " redeclared.");
 				}
 			};
 
@@ -225,8 +222,8 @@ EXPR 		: EXPR '+' EXPR {
 					$$.label = var;
 				} else {
 					// throw compile error
-					$$.type = "ERROR";
-					$$.transl = "ERROR";
+					yyerror("Arithmetic operation between types " 
+					+ $1.type + " and " + $3.type + " is not defined.");
 				}
 			}
 			| EXPR '-' EXPR {
@@ -261,8 +258,8 @@ EXPR 		: EXPR '+' EXPR {
 					$$.label = var;
 				} else {
 					// throw compiler error
-					$$.type = "ERROR";
-					$$.transl = "ERROR";
+					yyerror("Arithmetic operation between types " 
+					+ $1.type + " and " + $3.type + " is not defined.");
 				}
 			}
 			| EXPR '*' EXPR {
@@ -297,8 +294,8 @@ EXPR 		: EXPR '+' EXPR {
 					$$.label = var;
 				} else {
 					// throw compiler error
-					$$.type = "ERROR";
-					$$.transl = "ERROR";
+					yyerror("Arithmetic operation between types " 
+					+ $1.type + " and " + $3.type + " is not defined.");
 				}
 			}
 			| EXPR '/' EXPR {
@@ -333,8 +330,8 @@ EXPR 		: EXPR '+' EXPR {
 					$$.label = var;
 				} else {
 					// throw compiler error
-					$$.type = "ERROR";
-					$$.transl = "ERROR";
+					yyerror("Arithmetic operation between types " 
+					+ $1.type + " and " + $3.type + " is not defined.");
 				}
 			}
 			| EXPR '<' EXPR {
@@ -369,8 +366,7 @@ EXPR 		: EXPR '+' EXPR {
 					$$.label = var;
 				} else {
 					// throw compiler error
-					$$.type = "ERROR";
-					$$.transl = "ERROR";
+					yyerror("Relational operation between non-bools.");
 				}
 			}
 			| EXPR '>' EXPR {
@@ -405,8 +401,7 @@ EXPR 		: EXPR '+' EXPR {
 					$$.label = var;
 				} else {
 					// throw compiler error
-					$$.type = "ERROR";
-					$$.transl = "ERROR";
+					yyerror("Relational operation between non-bools.");
 				}
 			}
 			| EXPR "<=" EXPR {
@@ -441,8 +436,7 @@ EXPR 		: EXPR '+' EXPR {
 					$$.label = var;
 				} else {
 					// throw compiler error
-					$$.type = "ERROR";
-					$$.transl = "ERROR";
+					yyerror("Relational operation between non-bools.");
 				}
 			}
 			| EXPR ">=" EXPR {
@@ -477,8 +471,7 @@ EXPR 		: EXPR '+' EXPR {
 					$$.label = var;
 				} else {
 					// throw compiler error
-					$$.type = "ERROR";
-					$$.transl = "ERROR";
+					yyerror("Relational operation between non-bools.");
 				}
 			}
 			| EXPR "==" EXPR {
@@ -513,8 +506,7 @@ EXPR 		: EXPR '+' EXPR {
 					$$.label = var;
 				} else {
 					// throw compiler error
-					$$.type = "ERROR";
-					$$.transl = "ERROR";
+					yyerror("Relational operation between non-bools.");
 				}
 			}
 			| EXPR "!=" EXPR {
@@ -549,8 +541,7 @@ EXPR 		: EXPR '+' EXPR {
 					$$.label = var;
 				} else {
 					// throw compiler error
-					$$.type = "ERROR";
-					$$.transl = "ERROR";
+					yyerror("Relational operation between non-bools.");
 				}
 			}
 			| EXPR "and" EXPR {
@@ -563,7 +554,8 @@ EXPR 		: EXPR '+' EXPR {
 					"\t" + var + " = " + $1.label + " && " + $3.label + ";\n";
 					$$.label = var;
 				} else {
-					yyerror("Error: And operation between non-bool values.");
+					// throw compiler error
+					yyerror("Logic operation between non-bool values.");
 				}
 			}
 			| EXPR "or" EXPR {
@@ -576,7 +568,8 @@ EXPR 		: EXPR '+' EXPR {
 						"\t" + var + " = " + $1.label + " || " + $3.label + ";\n";
 					$$.label = var;
 				} else {
-					yyerror("Error: Or operation between non-bool values.");
+					// throw compiler error
+					yyerror("Logic operation between non-bool values.");
 				}
 			}
 			| "not" EXPR {
@@ -589,9 +582,8 @@ EXPR 		: EXPR '+' EXPR {
 					$$.transl = $2.transl +
 						"\t" + var + " = !" + $2.label + ";\n";
 				} else {
-					// throw compile error
-					$$.type = "ERROR";
-					$$.transl = "ERROR";
+					// throw compiler error
+					yyerror("Logic operation with non-bool value.");
 				}
 			}
 			| '(' EXPR ')' {
@@ -610,9 +602,8 @@ EXPR 		: EXPR '+' EXPR {
 						"\t" + var + " = (" + $3.transl + ") " + $1.label + ";\n";
 					$$.label = var;
 				} else {
-					// throw compile error
-					$$.type = "ERROR";
-					$$.transl = "ERROR";
+					// throw compiler error
+					yyerror("Invalid cast from " + $1.type + " to " + $3.transl + ".");
 				}
 			}
 			| VALUE_OR_ID;
@@ -709,7 +700,7 @@ int main(int argc, char* argv[]) {
 }
 
 void yyerror( string MSG ) {
-	cout << MSG << endl;
+	cout << "Error: " << MSG << endl;
 	exit (0);
 }
 
