@@ -27,14 +27,17 @@ string type1, type2, op, typeRes, value;
 ifstream opMapFile, padraoMapFile;
 
 vector<string> decls;
+vector<map<string, var_info>> varMap;
 map<string, string> opMap;
-map<string, var_info> varMap;
 map<string, string> padraoMap;
 int tempGen = 0;
 int tempLabel = 0;
 
 string getNextVar();
 string getNextLabel();
+
+var_info* findVar(string label);
+void insertVar(string label, var_info info);
 
 int yylex(void);
 void yyerror(string);
@@ -166,11 +169,13 @@ WRITE		: "write" EXPR {
 			};
 			
 ATTRIBUTION	: TYPE TK_ID '=' EXPR {
-				if (!varMap.count($2.label)) {
+				var_info* info = findVar($2.label);
+				
+				if (info == nullptr) {
 					if ($4.type == $1.transl) {
 						$$.transl = $4.transl;
 						
-						varMap[$2.label] = {$1.transl, $4.label, true};
+						insertVar($2.label, {$1.transl, $4.label, true});
 					} else {
 						// throw compile error
 						yyerror("Variable assignment with incompatible types " 
@@ -182,11 +187,13 @@ ATTRIBUTION	: TYPE TK_ID '=' EXPR {
 				}
 			}
 			| "const" TYPE TK_ID '=' EXPR {
-				if (!varMap.count($3.label)) {
+				var_info* info = findVar($3.label);
+				
+				if (info == nullptr) {
 					if ($5.type == $2.transl) {
 						$$.transl = $5.transl;
 						
-						varMap[$3.label] = {$2.transl, $5.label, false};
+						insertVar($3.label, {$2.transl, $5.label, false});
 					} else {
 						// throw compile error
 						yyerror("Variable assignment with incompatible types " 
@@ -198,38 +205,38 @@ ATTRIBUTION	: TYPE TK_ID '=' EXPR {
 				}
 			}
 			| TK_ID '=' EXPR {
-				if (varMap.count($1.label)) {
-					var_info info = varMap[$1.label];
-					
-					if (!info.isMutable) {
+				var_info* info = findVar($1.label);
+				
+				if (info != nullptr) {
+					if (!info->isMutable) {
 						yyerror("Assignment on constant variable " + $1.label +  ".");
 					}
 					
 					// se tipo da expr for igual a do id
-					if (info.type == $3.type) {
+					if (info->type == $3.type) {
 						//varMap[$1.label] = {info.type, $3.label, true};
 						$$.type = $3.type;
 						//$$.transl = $3.transl;
-						$$.transl = $3.transl + "\t" + info.name + " = " + $3.label + ";\n";
+						$$.transl = $3.transl + "\t" + info->name + " = " + $3.label + ";\n";
 						$$.label = $3.label;
 					} else {
 						string var = getNextVar();
-						string resType = opMap[info.type + "=" + $3.type];
+						string resType = opMap[info->type + "=" + $3.type];
 						
 						// se conversão é permitida
 						if (resType.size()) {
-							decls.push_back("\t" + info.type + " " + var + ";");
+							decls.push_back("\t" + info->type + " " + var + ";");
 							$$.transl = $3.transl + "\t" + 
-								var + " = (" + info.type + ") " + $3.label + ";\n\t" +
-								info.name + " = " + var + ";\n";
-							$$.type = info.type;
+								var + " = (" + info->type + ") " + $3.label + ";\n\t" +
+								info->name + " = " + var + ";\n";
+							$$.type = info->type;
 							$$.label = var;
 							
 							//varMap[$1.label] = {info.type, var};
 						} else {
 							// throw compile error
 							yyerror("Variable assignment with incompatible types " 
-								+ info.type + " and " + $3.type + ".");
+								+ info->type + " and " + $3.type + ".");
 						}
 					}
 				} else {
@@ -238,10 +245,12 @@ ATTRIBUTION	: TYPE TK_ID '=' EXPR {
 				}
 			}
 			| TYPE TK_ID {
-				if (!varMap.count($2.label)) {
+				var_info* info = findVar($2.label);
+				
+				if (info == nullptr) {
 					string var = getNextVar();
 					
-					varMap[$2.label] = {$1.transl, var, true};
+					insertVar($2.label, {$1.transl, var, true});
 					
 					decls.push_back("\t" + $1.type + " " + var + ";");
 					$$.transl = "\t" + var + " = " + 
@@ -731,11 +740,11 @@ VALUE_OR_ID	: TK_NUM {
 				$$.label = var;
 			}
 			| TK_ID {
-				var_info varInfo = varMap[$1.label];
+				var_info* info = findVar($1.label);
 				
-				if (varInfo.name.size()) {
-					$$.type = varInfo.type;
-					$$.label = varInfo.name;
+				if (info != nullptr && info->name.size()) {
+					$$.type = info->type;
+					$$.label = info->name;
 					$$.transl = "";
 				} else {
 					// throw compile error
@@ -782,6 +791,9 @@ int main(int argc, char* argv[]) {
 	} else {
 		cout << "Unable to open default values file";
 	}
+	
+	map<string, var_info> globalContext;
+	varMap.push_back(globalContext);
 
 	yyparse();
 
@@ -791,6 +803,20 @@ int main(int argc, char* argv[]) {
 void yyerror( string MSG ) {
 	cout << "Error: " << MSG << endl;
 	exit (0);
+}
+
+var_info* findVar(string label) {
+	for (int i = varMap.size() - 1; i >= 0; i--) {
+		if (varMap[i].count(label)) {
+			return &varMap[i][label];
+		}
+	}
+	
+	return nullptr;
+}
+
+void insertVar(string label, var_info info) {
+	varMap[varMap.size() - 1][label] = info;
 }
 
 string getNextVar() {
