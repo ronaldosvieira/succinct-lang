@@ -207,9 +207,10 @@ ATTRIBUTION	: TYPE TK_ID '=' EXPR {
 					
 					// se tipo da expr for igual a do id
 					if (info.type == $3.type) {
-						varMap[$1.label] = {info.type, $3.label, true};
+						//varMap[$1.label] = {info.type, $3.label, true};
 						$$.type = $3.type;
-						$$.transl = $3.transl;
+						//$$.transl = $3.transl;
+						$$.transl = $3.transl + "\t" + info.name + " = " + $3.label + ";\n";
 						$$.label = $3.label;
 					} else {
 						string var = getNextVar();
@@ -219,11 +220,12 @@ ATTRIBUTION	: TYPE TK_ID '=' EXPR {
 						if (resType.size()) {
 							decls.push_back("\t" + info.type + " " + var + ";");
 							$$.transl = $3.transl + "\t" + 
-								var + " = (" + info.type + ") " + $3.label + ";\n";
+								var + " = (" + info.type + ") " + $3.label + ";\n\t" +
+								info.name + " = " + var + ";\n";
 							$$.type = info.type;
 							$$.label = var;
 							
-							varMap[$1.label] = {info.type, var};
+							//varMap[$1.label] = {info.type, var};
 						} else {
 							// throw compile error
 							yyerror("Variable assignment with incompatible types " 
@@ -684,8 +686,8 @@ EXPR 		: EXPR '+' EXPR {
 				string type = opMap[$3.transl + "cast" + $1.type];
 				
 				if (type.size()) {
-					$$.type = type;
-					decls.push_back("\t" + $$.type + " " + var + ";");
+					$$.type = $3.transl;
+					decls.push_back("\t" + type + " " + var + ";");
 					$$.transl = $1.transl + 
 						"\t" + var + " = (" + $3.transl + ") " + $1.label + ";\n";
 					$$.label = var;
