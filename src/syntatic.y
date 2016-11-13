@@ -20,6 +20,7 @@ struct attributes {
 typedef struct var_info {
 	string type; // tipo da variável usada no cód. intermediário (ex: "int")
 	string name; // nome da variável usada no cód. intermediário (ex: "t0")
+	bool isMutable; // se variável é constante ou não
 } var_info;
 
 string type1, type2, op, typeRes, value;
@@ -40,7 +41,7 @@ void yyerror(string);
 %token TK_NUM TK_CHAR TK_BOOL
 %token TK_AS "as"
 %token TK_WRITE "write"
-%token TK_MAIN TK_ID TK_INT_TYPE TK_FLOAT_TYPE TK_CHAR_TYPE
+%token TK_MAIN TK_ID TK_CONST TK_INT_TYPE TK_FLOAT_TYPE TK_CHAR_TYPE
 %token TK_DOUBLE_TYPE TK_LONG_TYPE TK_STRING_TYPE TK_BOOL_TYPE
 %token TK_FIM TK_ERROR
 %token TK_BREAK
@@ -124,12 +125,14 @@ WRITE		: "write" EXPR {
 				$$.transl += "\tprintf(\"" + format + "\\n\", " + label + ");\n";
 			};
 			
-ATTRIBUTION	: TYPE TK_ID '=' EXPR {
+ATTRIBUTION	: TYPE ID '=' EXPR {
 				if (!varMap.count($2.label)) {
 					if ($4.type == $1.transl) {
 						$$.transl = $4.transl;
 						
-						varMap[$2.label] = {$1.transl, $4.label};
+						bool isMutable = $2.type == "const"? false : true;
+						
+						varMap[$2.label] = {$1.transl, $4.label, isMutable};
 					} else {
 						// throw compile error
 						yyerror("Variable assignment with incompatible types " 
@@ -140,13 +143,17 @@ ATTRIBUTION	: TYPE TK_ID '=' EXPR {
 					yyerror("Variable " + $2.label + " redeclared.");
 				}
 			}
-			| TK_ID '=' EXPR {
+			| ID '=' EXPR {
 				if (varMap.count($1.label)) {
 					var_info info = varMap[$1.label];
 					
+					if (!info.isMutable) {
+						yyerror("Assignment on constant variable " + $1.label +  ".");
+					}
+					
 					// se tipo da expr for igual a do id
 					if (info.type == $3.type) {
-						varMap[$1.label] = {info.type, $3.label};
+						varMap[$1.label] = {info.type, $3.label, true};
 						$$.type = $3.type;
 						$$.transl = $3.transl;
 						$$.label = $3.label;
@@ -174,11 +181,15 @@ ATTRIBUTION	: TYPE TK_ID '=' EXPR {
 					yyerror("Variable " + $1.label + " not declared.");
 				}
 			}
-			| TYPE TK_ID {
+			| TYPE ID {
 				if (!varMap.count($2.label)) {
+					if ($2.type == "const") {
+						yyerror("Constant variables must be given a value at its declaration.");
+					}
+					
 					string var = getNextVar();
 					
-					varMap[$2.label] = {$1.transl, var};
+					varMap[$2.label] = {$1.transl, var, true};
 					
 					decls.push_back("\t" + $1.type + " " + var + ";");
 					$$.transl = "\t" + var + " = " + 
@@ -663,7 +674,7 @@ VALUE_OR_ID	: TK_NUM {
 				$$.transl = "\t" + var + " = " + $1.label + ";\n";
 				$$.label = var;
 			}
-			| TK_ID {
+			| ID {
 				var_info varInfo = varMap[$1.label];
 				
 				if (varInfo.name.size()) {
@@ -672,10 +683,13 @@ VALUE_OR_ID	: TK_NUM {
 					$$.transl = "";
 				} else {
 					// throw compile error
-					$$.type = "ERROR";
-					$$.transl = "ERROR";
+					yyerror("Variable " + $1.label + " not declared.");
 				}
 			}
+			;
+			
+ID			: TK_ID 
+			| TK_CONST
 			;
 			
 TYPE		: TK_INT_TYPE
