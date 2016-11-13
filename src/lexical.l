@@ -71,6 +71,7 @@ COMML	    "//".*\n
 "<="|"lte"  { return TK_LTE; }
 "&&"|"and"  { return TK_AND; }
 "||"|"or"   { return TK_OR; }
+"xor"       { return TK_XOR; }
 "!"|"not"   { return TK_NOT; }
 
 {INT}		{

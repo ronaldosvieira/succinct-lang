@@ -46,6 +46,7 @@ void yyerror(string);
 %token TK_BREAK
 %token TK_AND "and"
 %token TK_OR "or"
+%token TK_XOR "xor"
 %token TK_NOT "not"
 %token TK_GTE ">="
 %token TK_LTE "<="
@@ -56,7 +57,7 @@ void yyerror(string);
 
 %nonassoc '<' '>' "<=" ">=" "!=" "=="
 %right "not"
-%left "and" "or"
+%left "and" "or" "xor"
 %left '+' '-'
 %left '*' '/'
 %left "as"
@@ -567,6 +568,28 @@ EXPR 		: EXPR '+' EXPR {
 					$$.transl = $1.transl + $3.transl + 
 						"\t" + var + " = " + $1.label + " || " + $3.label + ";\n";
 					$$.label = var;
+				} else {
+					// throw compiler error
+					yyerror("Logic operation between non-bool values.");
+				}
+			}
+			| EXPR "xor" EXPR {
+				string var[4] = {getNextVar(), getNextVar(), 
+					getNextVar(), getNextVar()};
+				
+				if ($1.type == "bool" && $3.type == "bool") {
+					decls.push_back("\tint " + var[0] + ";");
+					decls.push_back("\tint " + var[1] + ";");
+					decls.push_back("\tint " + var[2] + ";");
+					decls.push_back("\tint " + var[3] + ";");
+					
+					$$.type = "bool";
+					$$.transl = $1.transl + $3.transl +
+						"\t" + var[0] + " = " + $1.label + " || " + $3.label + ";\n" +
+						"\t" + var[1] + " = " + $1.label + " && " + $3.label + ";\n" +
+						"\t" + var[2] + " = !" + var[1] + ";\n" +
+						"\t" + var[3] + " = " + var[0] + " && " + var[2] + ";\n";
+					$$.label = var[3];
 				} else {
 					// throw compiler error
 					yyerror("Logic operation between non-bool values.");

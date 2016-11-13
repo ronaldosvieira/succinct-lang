@@ -16,6 +16,7 @@ int main() {
 	true and true or false;
 	true && true || false;
 	false or true;
+	false xor true;
 	4 <= 2.0;
 	4 lte 2;
 	
