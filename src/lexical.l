@@ -36,8 +36,8 @@ CHAR		\'[^\'\n]\'
 STRING		\'[^\'\n]+\'|\"[^\'\n]+\"
 BOOL        "true"|"false"
 
-ID          {ALPHA}*{LOALPHA}{ALPHA}*
-CONST       ({UPALPHA}|[_\-])*{UPPER}({UPALPHA}|[_\-*])*
+ID          {ALPHA}{ALPHA}*
+/* CONST       [{UPALPHA}_\-]*{UPPER}[{UPALPHA}_\-*]* */
 
 COMMBST	    "/*"
 COMMBFN     "*/"
@@ -60,6 +60,7 @@ COMML	    "//".*\n
 "char"		{ yylval.transl = yytext; return TK_CHAR_TYPE; }
 "string"	{ yylval.transl = yytext; return TK_STRING_TYPE; }
 "bool"      { yylval.transl = yytext; return TK_BOOL_TYPE; }
+"const"     { yylval.transl = yytext; return TK_CONST; }
 
 [(){}[\];,]	{ return *yytext; }
 
@@ -109,16 +110,7 @@ COMML	    "//".*\n
     return TK_BOOL;
 }
 
-{ID}		{ 
-    yylval.label = yytext;
-    yylval.type = "var";
-    return TK_ID;
-}
-{CONST}     { 
-    yylval.label = yytext;
-    yylval.type = "const";
-    return TK_CONST;
-}
+{ID}		{ yylval.label = yytext; return TK_ID; }
 
 {BREAK}		{}
 
