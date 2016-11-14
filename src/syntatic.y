@@ -36,6 +36,9 @@ int tempLabel = 0;
 string getNextVar();
 string getNextLabel();
 
+void pushContext();
+void popContext();
+
 var_info* findVar(string label);
 void insertVar(string label, var_info info);
 
@@ -830,6 +833,15 @@ var_info* findVar(string label) {
 
 void insertVar(string label, var_info info) {
 	varMap[varMap.size() - 1][label] = info;
+}
+
+void pushContext() {
+	map<string, var_info> newContext;
+	varMap.push_back(newContext);
+}
+
+void popContext() {
+	return varMap.pop_back();
 }
 
 string getNextVar() {
