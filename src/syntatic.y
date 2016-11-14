@@ -201,13 +201,13 @@ CONTROL		: "if" EXPR TK_BSTART BLOCK {
 			;
 			
 WRITE		: "write" WRITE_ARGS {
-				$$.transl += "\tstd::cout" + $2.transl + ";\n";
+				$$.transl = "\tstd::cout" + $2.transl + ";\n";
 			};
 		
 WRITE_ARGS	: WRITE_ARG WRITE_ARGS {
 				$$.transl = $1.transl + $2.transl;
 			}
-			| WRITE_ARG;
+			| WRITE_ARG { $$.transl = $1.transl; };
 			
 WRITE_ARG	: EXPR { $$.transl = " << " + $1.label; }
 			| TK_ENDL { $$.transl = " << std::endl"; }
