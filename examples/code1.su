@@ -1,47 +1,45 @@
-int main() {
-	1.0 * 2 - 3;
-	1.0 * (2 - 3);
-	4 + 5.0;
-	float x = 3.0f;
-	x + 1;
-	bool b = true;
-	char k = 'c';
-	
-	k = 'z';
-	
-	float a = 1.0f;
-	a = 2.0;
-	float i;
-	
-	true and true or false;
-	true && true || false;
-	false or true;
-	false xor true;
-	4 <= 2.0;
-	4 lte 2;
-	
-	int l = 1.0f as int;
-	int j = 2;
-	2.0f as double;
-	
-	3 as float / 2;
-	3 / 2 as float;
-	(3 / 2) as float;
-	
-	write j as float;
-	write b;
-	write true;
-	
-	b = not not b;
-	b = !!b;
-	
-	while b: {
-		1 + 1;
-	}
-	
-	do {
-		1 + 1;
-	} while b;
-	
-	const int aaa = 2;
+1.0 * 2 - 3;
+1.0 * (2 - 3);
+4 + 5.0;
+float x = 3.0f;
+x + 1;
+bool b = true;
+char k = 'c';
+
+k = 'z';
+
+float a = 1.0f;
+a = 2.0;
+float i;
+
+true and true or false;
+true && true || false;
+false or true;
+false xor true;
+4 <= 2.0;
+4 lte 2;
+
+int l = 1.0f as int;
+int j = 2;
+2.0f as double;
+
+3 as float / 2;
+3 / 2 as float;
+(3 / 2) as float;
+
+write j as float;
+write b;
+write true;
+
+b = not not b;
+b = !!b;
+
+while b: {
+	1 + 1;
 }
+
+do {
+	1 + 1;
+} while b;
+
+const int aaa = 2;

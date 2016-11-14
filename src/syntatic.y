@@ -74,7 +74,7 @@ void yyerror(string);
 
 %%
 
-S 			: TK_INT_TYPE TK_MAIN '(' ')' BLOCK {
+S 			: STATEMENTS {
 				cout << 
 				"/* Succinct lang */" << endl << endl <<
 				"#include <iostream>" << endl <<
@@ -87,7 +87,7 @@ S 			: TK_INT_TYPE TK_MAIN '(' ')' BLOCK {
 				}
 				
 				cout << "\n" << 
-				$5.transl << 
+				$1.transl << 
 				"\treturn 0;\n}" << endl;
 			};
 
