@@ -39,7 +39,11 @@ while b: {
 }
 
 do {
-	1 + 1;
-} while b;
+	int scope = 1;
+} while false;
+
+// write scope; (error)
 
 const int aaa = 2;
+
+// aaa = 3; (error)

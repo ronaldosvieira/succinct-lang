@@ -93,9 +93,23 @@ S 			: STATEMENTS {
 				$1.transl << 
 				"\treturn 0;\n}" << endl;
 			};
+			
+PUSH_SCOPE: {
+				pushContext();
+				
+				$$.transl = "";
+				$$.label = "";
+			}
+			
+POP_SCOPE:	{
+				popContext();
+				
+				$$.transl = "";
+				$$.label = "";
+			}
 
-BLOCK		: '{' STATEMENTS '}' {
-				$$.transl = $2.transl;
+BLOCK		: PUSH_SCOPE '{' STATEMENTS '}' POP_SCOPE {
+				$$.transl = $3.transl;
 			};
 
 STATEMENTS	: STATEMENT STATEMENTS {
