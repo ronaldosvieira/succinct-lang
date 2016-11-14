@@ -46,6 +46,7 @@ void yyerror(string);
 %token TK_NUM TK_CHAR TK_BOOL
 %token TK_IF "if"
 %token TK_WHILE "while"
+%token TK_DO "do"
 %token TK_AS "as"
 %token TK_WRITE "write"
 %token TK_CONST "const"
@@ -142,6 +143,22 @@ CONTROL		: "if" EXPR TK_BSTART BLOCK {
 				} else {
 					// throw compile error
 					yyerror("Non-bool expression on while condition.");
+				}
+			}
+			| "do" BLOCK "while" EXPR ';' {
+				if ($4.type == "bool") {
+					string var = getNextVar();
+					string begin = getNextLabel();
+					
+					decls.push_back("\tint " + var + ";");
+					
+					$$.transl = begin + ":" + $2.transl
+						+ $4.transl + "\t"
+						+ var + " = !" + $4.label + ";\n\tif (" 
+						+ $4.label + ") goto " + begin + ";\n";
+				} else {
+					// throw compile error
+					yyerror("Non-bool expression on do-while condition.");
 				}
 			}
 			;

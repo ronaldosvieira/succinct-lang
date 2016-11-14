@@ -39,5 +39,9 @@ int main() {
 		1 + 1;
 	}
 	
+	do {
+		1 + 1;
+	} while b;
+	
 	const int aaa = 2;
 }
