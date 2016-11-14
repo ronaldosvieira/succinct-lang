@@ -200,32 +200,17 @@ CONTROL		: "if" EXPR TK_BSTART BLOCK {
 			}
 			;
 			
-WRITE		: "write" EXPR OPT_ENDL {
-				string format, label;
-				
-				$$.transl = $2.transl;
-				label = $2.label;
-				
-				/*if ($2.type == "int") format = "%d";
-				else if ($2.type == "float") format = "%f";
-				else if ($2.type == "double") format = "%lf";
-				else if ($2.type == "char") format = "%c";
-				else if ($2.type == "bool") {
-					decls.push_back("\tchar *_bool_" + $2.label + ";");
-					$$.transl += "\tif (" + $2.label + ") strcpy(_bool_" + $2.label + ", \"true\");\n";
-					$$.transl += "\telse strcpy(_bool_" + $2.label + ", \"false\");\n";
-					
-					format = "%s";
-					label = "_bool_" + $2.label;
-				}
-				
-				$$.transl += "\tprintf(\"" + format + "\\n\", " + label + ");\n";*/
-				
-				$$.transl += "\tstd::cout << " + label + $3.transl + ";\n";
+WRITE		: "write" WRITE_ARGS {
+				$$.transl += "\tstd::cout" + $2.transl + ";\n";
 			};
+		
+WRITE_ARGS	: WRITE_ARG WRITE_ARGS {
+				$$.transl = $1.transl + $2.transl;
+			}
+			| WRITE_ARG;
 			
-OPT_ENDL	: TK_ENDL { $$.transl = " << std::endl"; }
-			| { $$.transl = ""; }
+WRITE_ARG	: EXPR { $$.transl = " << " + $1.label; }
+			| TK_ENDL { $$.transl = " << std::endl"; }
 			;
 			
 ATTRIBUTION	: TYPE TK_ID '=' EXPR {
