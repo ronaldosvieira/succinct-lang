@@ -57,6 +57,7 @@ void yyerror(string);
 %token TK_MAIN TK_ID TK_INT_TYPE TK_FLOAT_TYPE TK_CHAR_TYPE
 %token TK_DOUBLE_TYPE TK_LONG_TYPE TK_STRING_TYPE TK_BOOL_TYPE
 %token TK_FIM TK_ERROR
+%token TK_ENDL
 %token TK_BREAK TK_BSTART
 %token TK_AND "and"
 %token TK_OR "or"
@@ -199,13 +200,13 @@ CONTROL		: "if" EXPR TK_BSTART BLOCK {
 			}
 			;
 			
-WRITE		: "write" EXPR {
+WRITE		: "write" EXPR OPT_ENDL {
 				string format, label;
 				
 				$$.transl = $2.transl;
 				label = $2.label;
 				
-				if ($2.type == "int") format = "%d";
+				/*if ($2.type == "int") format = "%d";
 				else if ($2.type == "float") format = "%f";
 				else if ($2.type == "double") format = "%lf";
 				else if ($2.type == "char") format = "%c";
@@ -218,8 +219,14 @@ WRITE		: "write" EXPR {
 					label = "_bool_" + $2.label;
 				}
 				
-				$$.transl += "\tprintf(\"" + format + "\\n\", " + label + ");\n";
+				$$.transl += "\tprintf(\"" + format + "\\n\", " + label + ");\n";*/
+				
+				$$.transl += "\tstd::cout << " + label + $3.transl + ";\n";
 			};
+			
+OPT_ENDL	: TK_ENDL { $$.transl = " << std::endl"; }
+			| { $$.transl = ""; }
+			;
 			
 ATTRIBUTION	: TYPE TK_ID '=' EXPR {
 				var_info* info = findVar($2.label);

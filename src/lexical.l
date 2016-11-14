@@ -56,6 +56,7 @@ COMML	    "//"[^\n]*
 "do"        { return TK_DO; }
 
 "write"     { return TK_WRITE; }
+"endl"      { return TK_ENDL; }
 "as"        { return TK_AS; }
 
 ":"         { return TK_BSTART; }

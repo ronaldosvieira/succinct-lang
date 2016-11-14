@@ -44,6 +44,8 @@ while b: {}
 
 do {
 	int scope = 1;
+	
+	write scope endl;
 } while false;
 
 // write scope; (error)
