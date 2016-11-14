@@ -824,5 +824,5 @@ string getNextVar() {
 }
 
 string getNextLabel() {
-	return "label" + to_string(tempLabel++);
+	return "l" + to_string(tempLabel++);
 }
