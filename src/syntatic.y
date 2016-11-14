@@ -878,5 +878,5 @@ string getNextVar() {
 }
 
 string getNextLabel() {
-	return "l" + to_string(tempLabel++);
+	return "lbl" + to_string(tempLabel++);
 }
