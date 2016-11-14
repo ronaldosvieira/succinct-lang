@@ -42,7 +42,7 @@ ID          {ALPHA}{ALPHA}*
 COMMBST	    "/*"
 COMMBFN     "*/"
 COMMB       {COMMBST}[^{COMMBFN}]*{COMMBFN}
-COMML	    "//".*\n
+COMML	    "//"[^\n]*
 
 %%
 
@@ -119,6 +119,8 @@ COMML	    "//".*\n
 {ID}		{ yylval.label = yytext; return TK_ID; }
 
 {BREAK}		{}
+
+{COMML}     {}
 
 .			{ *yytext; }
 
