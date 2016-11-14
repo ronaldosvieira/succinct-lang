@@ -34,6 +34,12 @@ write true;
 b = not not b;
 b = !!b;
 
+if b: {
+	1 + 1;
+} else: {
+	2 + 2;
+}
+
 while b: {
 	1 + 1;
 }

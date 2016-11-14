@@ -50,6 +50,7 @@ void yyerror(string);
 %token TK_IF "if"
 %token TK_WHILE "while"
 %token TK_DO "do"
+%token TK_ELSE "else"
 %token TK_AS "as"
 %token TK_WRITE "write"
 %token TK_CONST "const"
@@ -132,13 +133,36 @@ STATEMENT 	: EXPR ';' {
 			
 CONTROL		: "if" EXPR TK_BSTART BLOCK {
 				if ($2.type == "bool") {
+					string var = getNextVar();
 					string end = getNextLabel();
 					
+					decls.push_back("\tint " + var + ";");
+					
 					$$.transl = $2.transl + 
-						"\t" + $2.label + " = !" + $2.label + ";\n" +
-						"\tif (" + $2.label + ") goto " + end + ";\n" +
+						"\t" + var + " = !" + $2.label + ";\n" +
+						"\tif (" + var + ") goto " + end + ";\n" +
 						$4.transl +
 						"\t" + end + ":\n";
+				} else {
+					// throw compile error
+					yyerror("Non-bool expression on if condition.");
+				}
+			}
+			| "if" EXPR TK_BSTART BLOCK "else" TK_BSTART BLOCK {
+				if ($2.type == "bool") {
+					string var = getNextVar();
+					string endif = getNextLabel();
+					string endelse = getNextLabel();
+					
+					decls.push_back("\tint " + var + ";");
+					
+					$$.transl = $2.transl + 
+						"\t" + var + " = !" + $2.label + ";\n" +
+						"\tif (" + var + ") goto " + endif + ";\n" +
+						$4.transl +
+						"\tgoto " + endelse + ";\n" +
+						endif + ":" + $7.transl +
+						endelse + ":";
 				} else {
 					// throw compile error
 					yyerror("Non-bool expression on if condition.");
