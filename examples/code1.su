@@ -40,9 +40,7 @@ if b: {
 	2 + 2;
 }
 
-while b: {
-	1 + 1;
-}
+while b: {}
 
 do {
 	int scope = 1;

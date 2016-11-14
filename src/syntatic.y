@@ -116,9 +116,8 @@ BLOCK		: PUSH_SCOPE '{' STATEMENTS '}' POP_SCOPE {
 STATEMENTS	: STATEMENT STATEMENTS {
 				$$.transl = $1.transl + "\n" + $2.transl;
 			}
-			| STATEMENT {
-				$$.transl = $1.transl + "\n";
-			};
+			| { $$.transl = ""; }
+			;
 
 STATEMENT 	: EXPR ';' {
 				$$.transl = $1.transl;
