@@ -137,7 +137,7 @@ CONTROL		: "if" EXPR TK_BSTART BLOCK {
 					
 					$$.transl = $2.transl + 
 						begin + ":\t" + var + " = !" + $2.label + ";\n" +
-						"\tif (" + $2.label + ") goto " + end + ";\n" +
+						"\tif (" + var + ") goto " + end + ";\n" +
 						$4.transl +
 						"\tgoto " + begin + ";\n\t" + end + ":\n";
 				} else {
@@ -147,14 +147,10 @@ CONTROL		: "if" EXPR TK_BSTART BLOCK {
 			}
 			| "do" BLOCK "while" EXPR ';' {
 				if ($4.type == "bool") {
-					string var = getNextVar();
 					string begin = getNextLabel();
 					
-					decls.push_back("\tint " + var + ";");
-					
 					$$.transl = begin + ":" + $2.transl
-						+ $4.transl + "\t"
-						+ var + " = !" + $4.label + ";\n\tif (" 
+						+ $4.transl + "\tif (" 
 						+ $4.label + ") goto " + begin + ";\n";
 				} else {
 					// throw compile error
