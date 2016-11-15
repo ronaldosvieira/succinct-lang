@@ -123,7 +123,7 @@ STATEMENTS	: STATEMENT STATEMENTS {
 STATEMENT 	: EXPR ';' {
 				$$.transl = $1.transl;
 			}
-			| ATTRIBUTION ';' {
+			| DECL_OR_ATTR ';' {
 				$$.transl = $1.transl;
 			}
 			| WRITE ';' {
@@ -212,44 +212,36 @@ WRITE_ARGS	: WRITE_ARG WRITE_ARGS {
 WRITE_ARG	: EXPR { $$.transl = " << " + $1.label; }
 			| TK_ENDL { $$.transl = " << std::endl"; }
 			;
+
+DECL_OR_ATTR: DECLARATION
+			| ATTRIBUTION
+			| DECL_AND_ATTR
+			;
 			
-ATTRIBUTION	: TYPE TK_ID '=' EXPR {
+DECLARATION : TYPE TK_ID {
 				var_info* info = findVar($2.label);
 				
 				if (info == nullptr) {
-					if ($4.type == $1.transl) {
-						$$.transl = $4.transl;
-						
-						insertVar($2.label, {$1.transl, $4.label, true});
-					} else {
-						// throw compile error
-						yyerror("Variable assignment with incompatible types " 
-							+ $4.type + " and " + $1.transl + ".");
-					}
+					string var = getNextVar();
+					
+					insertVar($2.label, {$1.transl, var, true});
+					
+					decls.push_back("\t" + $1.type + " " + var + ";");
+					$$.transl = "\t" + var + " = " + 
+						padraoMap[$1.transl] + ";\n";
+					$$.label = var;
+					$$.type = $1.transl;
 				} else {
 					// throw compile error
 					yyerror("Variable " + $2.label + " redeclared.");
 				}
 			}
-			| "const" TYPE TK_ID '=' EXPR {
-				var_info* info = findVar($3.label);
-				
-				if (info == nullptr) {
-					if ($5.type == $2.transl) {
-						$$.transl = $5.transl;
-						
-						insertVar($3.label, {$2.transl, $5.label, false});
-					} else {
-						// throw compile error
-						yyerror("Variable assignment with incompatible types " 
-							+ $5.type + " and " + $2.transl + ".");
-					}
-				} else {
-					// throw compile error
-					yyerror("Variable " + $3.label + " redeclared.");
-				}
+			| "const" TYPE TK_ID {
+				yyerror("Constant variables must be given a value at its declaration.");
 			}
-			| TK_ID '=' EXPR {
+			;
+	
+ATTRIBUTION	: TK_ID '=' EXPR {
 				var_info* info = findVar($1.label);
 				
 				if (info != nullptr) {
@@ -289,26 +281,43 @@ ATTRIBUTION	: TYPE TK_ID '=' EXPR {
 					yyerror("Variable " + $1.label + " not declared.");
 				}
 			}
-			| TYPE TK_ID {
+			;
+
+DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
 				var_info* info = findVar($2.label);
 				
 				if (info == nullptr) {
-					string var = getNextVar();
-					
-					insertVar($2.label, {$1.transl, var, true});
-					
-					decls.push_back("\t" + $1.type + " " + var + ";");
-					$$.transl = "\t" + var + " = " + 
-						padraoMap[$1.transl] + ";\n";
-					$$.label = var;
-					$$.type = $1.transl;
+					if ($4.type == $1.transl) {
+						$$.transl = $4.transl;
+						
+						insertVar($2.label, {$1.transl, $4.label, true});
+					} else {
+						// throw compile error
+						yyerror("Variable assignment with incompatible types " 
+							+ $4.type + " and " + $1.transl + ".");
+					}
 				} else {
 					// throw compile error
 					yyerror("Variable " + $2.label + " redeclared.");
 				}
 			}
-			| "const" TYPE TK_ID {
-				yyerror("Constant variables must be given a value at its declaration.");
+			| "const" TYPE TK_ID '=' EXPR {
+				var_info* info = findVar($3.label);
+				
+				if (info == nullptr) {
+					if ($5.type == $2.transl) {
+						$$.transl = $5.transl;
+						
+						insertVar($3.label, {$2.transl, $5.label, false});
+					} else {
+						// throw compile error
+						yyerror("Variable assignment with incompatible types " 
+							+ $5.type + " and " + $2.transl + ".");
+					}
+				} else {
+					// throw compile error
+					yyerror("Variable " + $3.label + " redeclared.");
+				}
 			}
 			;
 
