@@ -246,7 +246,7 @@ DECLARATION : TYPE TK_ID {
 					
 					insertVar($2.label, {$1.transl, var, true});
 					
-					decls.push_back("\t" + $1.type + " " + var + ";");
+					decls.push_back("\t" + $1.transl + " " + var + ";");
 					$$.transl = "\t" + var + " = " + 
 						padraoMap[$1.transl] + ";\n";
 					$$.label = var;
@@ -301,6 +301,86 @@ ATTRIBUTION	: TK_ID '=' EXPR {
 					yyerror("Variable " + $1.label + " not declared.");
 				}
 			}
+			| '+' '+' TK_ID {
+				var_info* info = findVar($3.label);
+				
+				if (info != nullptr) {
+					if (!info->isMutable) {
+						yyerror("Increment on constant variable " + $3.label +  ".");
+					}
+					
+					string var = getNextVar();
+					decls.push_back("\tint " + var + ";");
+					
+					// se incremento é permitido
+					if (info->type == "int") {
+						$$.type = $3.type;
+						$$.transl = "\t" + var + " = 1;\n\t" + 
+							info->name + " = " + info->name + " + " + var + ";\n";
+						$$.label = $3.label;
+					} else {
+						string var2 = getNextVar();
+						string resType = opMap[info->type + "=int"];
+						
+						// se conversão é permitida
+						if (resType.size()) {
+							$$.type = $3.type;
+							$$.transl = "\t" + var + " = 1;\n\t" + 
+								var2 + " = (" + info->type + ") " + var + 
+								";\n\t" +
+								info->name + " = " + info->name + " + " + var2 + ";\n";
+							$$.label = $3.label;
+						} else {
+							// throw compile error
+							yyerror("Variable increment with incompatible type " 
+								+ info->type + ".");
+						}
+					}
+				} else {
+					// throw compile error
+					yyerror("Variable " + $3.label + " not declared.");
+				}
+			}
+			| '-' '-' TK_ID {
+				var_info* info = findVar($3.label);
+				
+				if (info != nullptr) {
+					if (!info->isMutable) {
+						yyerror("Decrement on constant variable " + $3.label +  ".");
+					}
+					
+					string var = getNextVar();
+					decls.push_back("\tint " + var + ";");
+					
+					// se incremento é permitido
+					if (info->type == "int") {
+						$$.type = $3.type;
+						$$.transl = "\t" + var + " = 1;\n\t" + 
+							info->name + " = " + info->name + " - " + var + ";\n";
+						$$.label = $3.label;
+					} else {
+						string var2 = getNextVar();
+						string resType = opMap[info->type + "=int"];
+						
+						// se conversão é permitida
+						if (resType.size()) {
+							$$.type = $3.type;
+							$$.transl = "\t" + var + " = 1;\n\t" + 
+								var2 + " = (" + info->type + ") " + var + 
+								";\n\t" +
+								info->name + " = " + info->name + " - " + var2 + ";\n";
+							$$.label = $3.label;
+						} else {
+							// throw compile error
+							yyerror("Variable increment with incompatible type " 
+								+ info->type + ".");
+						}
+					}
+				} else {
+					// throw compile error
+					yyerror("Variable " + $3.label + " not declared.");
+				}
+			}
 			;
 
 DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
@@ -312,9 +392,23 @@ DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
 						
 						insertVar($2.label, {$1.transl, $4.label, true});
 					} else {
-						// throw compile error
-						yyerror("Variable assignment with incompatible types " 
-							+ $4.type + " and " + $1.transl + ".");
+						string var = getNextVar();
+						string resType = opMap[$1.transl + "=" + $4.type];
+						
+						// se conversão é permitida
+						if (resType.size()) {
+							decls.push_back("\t" + $1.transl + " " + var + ";");
+							
+							$$.transl = $4.transl + "\t" + 
+								var + " = (" + $1.transl + ") " + $4.label + 
+								";\n\t";
+						
+							insertVar($2.label, {$1.transl, var, true});	
+						} else {
+							// throw compile error
+							yyerror("Variable assignment with incompatible types " 
+								+ info->type + " and " + $3.type + ".");
+						}
 					}
 				} else {
 					// throw compile error
@@ -329,10 +423,24 @@ DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
 						$$.transl = $5.transl;
 						
 						insertVar($3.label, {$2.transl, $5.label, false});
-					} else {
-						// throw compile error
-						yyerror("Variable assignment with incompatible types " 
-							+ $5.type + " and " + $2.transl + ".");
+					}  else {
+						string var = getNextVar();
+						string resType = opMap[$2.transl + "=" + $5.type];
+						
+						// se conversão é permitida
+						if (resType.size()) {
+							decls.push_back("\t" + $2.transl + " " + var + ";");
+							
+							$$.transl = $5.transl + "\t" + 
+								var + " = (" + $2.transl + ") " + $5.label + 
+								";\n\t";
+						
+							insertVar($3.label, {$2.transl, var, true});	
+						} else {
+							// throw compile error
+							yyerror("Variable assignment with incompatible types " 
+								+ info->type + " and " + $3.type + ".");
+						}
 					}
 				} else {
 					// throw compile error
