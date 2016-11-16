@@ -42,6 +42,12 @@ if b: {
 
 while b: {}
 
+for int kk = 0; 
+	kk < 5; 
+	kk = kk + 1: {
+	write kk endl;
+}
+
 do {
 	int scope = 1;
 	

@@ -49,6 +49,7 @@ void yyerror(string);
 %token TK_NUM TK_CHAR TK_BOOL
 %token TK_IF "if"
 %token TK_WHILE "while"
+%token TK_FOR "for"
 %token TK_DO "do"
 %token TK_ELSE "else"
 %token TK_AS "as"
@@ -196,6 +197,25 @@ CONTROL		: "if" EXPR TK_BSTART BLOCK {
 				} else {
 					// throw compile error
 					yyerror("Non-bool expression on do-while condition.");
+				}
+			}
+			| "for" DECL_OR_ATTR ';' EXPR ';' ATTRIBUTION TK_BSTART BLOCK {
+				if ($4.type == "bool") {
+					string var = getNextVar();
+					string begin = getNextLabel();
+					string end = getNextLabel();
+					
+					decls.push_back("\tint " + var + ";");
+					
+					$$.transl = $2.transl + begin + ":" + $4.transl + 
+						"\t" + var + " = !" + $4.label + ";\n" +
+						"\tif (" + var + ") goto " + end + ";\n" +
+						$8.transl + $6.transl +
+						"\tgoto " + begin + ";\n\t" + 
+						end + ":\n";
+				} else {
+					// throw compile error
+					yyerror("Non-bool expression on for condition.");
 				}
 			}
 			;

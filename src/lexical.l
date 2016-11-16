@@ -53,6 +53,7 @@ COMML	    "//"[^\n]*
 "if"        { return TK_IF; }
 "else"      { return TK_ELSE; }
 "while"     { return TK_WHILE; }
+"for"       { return TK_FOR; }
 "do"        { return TK_DO; }
 
 "write"     { return TK_WRITE; }
