@@ -59,3 +59,13 @@ do {
 const int aaa = 2;
 
 // aaa = 3; (error)
+
+float n = 0;
+
+n = 1.0;
+
+1 + ++n;
+2 + --n;
+
+3 + n++;
+4 + n--;

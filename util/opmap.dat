@@ -54,10 +54,6 @@ char = float char
 char = double char
 char = char char
 char = bool char
-bool = int bool
-bool = float bool
-bool = double bool
-bool = char bool
 bool = bool bool
 int rel int int
 int rel float float

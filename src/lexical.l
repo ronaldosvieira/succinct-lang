@@ -84,6 +84,9 @@ COMML	    "//"[^\n]*
 "xor"       { return TK_XOR; }
 "!"|"not"   { return TK_NOT; }
 
+"++"        { return TK_INCR; }
+"--"        { return TK_DECR; }
+
 {INT}		{
     yylval.transl = "";
     yylval.label = yytext;
