@@ -55,6 +55,8 @@ COMML	    "//"[^\n]*
 "while"     { return TK_WHILE; }
 "for"       { return TK_FOR; }
 "do"        { return TK_DO; }
+"switch"    { return TK_SWITCH; }
+"case"      { return TK_CASE; }
 
 "write"     { return TK_WRITE; }
 "endl"      { return TK_ENDL; }

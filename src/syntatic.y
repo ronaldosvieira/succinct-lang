@@ -49,6 +49,8 @@ void yyerror(string);
 %token TK_NUM TK_CHAR TK_BOOL
 %token TK_IF "if"
 %token TK_WHILE "while"
+%token TK_SWITCH "switch"
+%token TK_CASE "case"
 %token TK_FOR "for"
 %token TK_DO "do"
 %token TK_ELSE "else"
@@ -114,6 +116,9 @@ POP_SCOPE:	{
 BLOCK		: PUSH_SCOPE '{' STATEMENTS '}' POP_SCOPE {
 				$$.transl = $3.transl;
 			};
+OPEN_BLOCK	: PUSH_SCOPE '{';
+
+CLOSE_BLOCK	: '}' POP_SCOPE;
 
 STATEMENTS	: STATEMENT STATEMENTS {
 				$$.transl = $1.transl + "\n" + $2.transl;
@@ -164,6 +169,44 @@ CONTROL		: "if" EXPR TK_BSTART BLOCK {
 						"\tgoto " + endelse + ";\n" +
 						endif + ":" + $7.transl +
 						endelse + ":";
+				} else {
+					// throw compile error
+					yyerror("Non-bool expression on if condition.");
+				}
+			}
+			| "switch" EXPR TK_BSTART BLOCK {
+				if ($2.type == "int") {
+					string var = getNextVar();
+					string begin = getNextLabel();
+					string end = getNextLabel();
+					
+					decls.push_back("\tint " + var + ";");
+					
+					$$.transl = $2.transl + 
+						"\t" + var + " = !" + $2.label + ";\n" +
+						"\tif (" + var + ") goto " + end + ";\n" +
+						"\tj " + begin + "\n\n " +
+						"\t" + begin + ":\n\n" +  $4.transl +  
+						"\t" + end + ":\n";
+				} else {
+					// throw compile error
+					yyerror("Non-bool expression on if condition.");
+				}
+			}
+			| "case" VALUE_OR_ID TK_BSTART BLOCK{
+				if ($2.type == "int") {
+					string var = getNextVar();
+					string begin = getNextLabel();
+					string end = getNextLabel();
+					
+					decls.push_back("\tint " + var + ";");
+					
+					$$.transl = $2.transl + 
+						"\t" + var + " = !" + $2.label + ";\n" +
+						"\tif (" + var + ") goto " + end + ";\n" +
+						"\tj " + begin + "\n\n " +
+						"\t" + begin + ":\n\n" +  $4.transl +  
+						"\t" + end + ":\n";
 				} else {
 					// throw compile error
 					yyerror("Non-bool expression on if condition.");
