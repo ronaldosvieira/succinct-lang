@@ -69,3 +69,11 @@ n = 1.0;
 
 // 3 + n++;
 // 4 + n--;
+
+int p = 0;
+
+while p < 5: {
+	write p endl;
+	
+	p = p + 1;
+}

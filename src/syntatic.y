@@ -23,6 +23,11 @@ typedef struct var_info {
 	bool isMutable; // se variável é constante ou não
 } var_info;
 
+typedef struct loop_info {
+	string start; // nome da label do início do bloco
+	string end; // nome da label do fim do bloco
+} loop_info;
+
 string type1, type2, op, typeRes, value;
 ifstream opMapFile, padraoMapFile;
 
@@ -34,6 +39,9 @@ vector<string> decls;
 
 // pilha de mapas de variável
 vector<map<string, var_info>> varMap;
+
+// pilha de labels de loops
+vector<loop_info> loopMap;
 
 // mapa de operações e tipos resultantes
 map<string, string> opMap;
@@ -58,6 +66,15 @@ var_info* findVar(string label);
 
 // insere uma nova variável no contexto atual
 void insertVar(string label, var_info info);
+
+// registra um novo loop
+void pushLoop(string start, string end);
+
+// obtem o loop atual
+loop_info* getLoop();
+
+// remove o loop atual
+void popLoop();
 
 int yylex(void);
 void yyerror(string);
@@ -130,6 +147,20 @@ POP_SCOPE:	{
 				$$.transl = "";
 				$$.label = "";
 			};
+			
+PUSH_LOOP:	{
+				pushLoop(getNextLabel(), getNextLabel());
+				
+				$$.transl = "";
+				$$.label = "";
+			};
+			
+POP_LOOP:	{
+				popLoop();
+				
+				$$.transl = "";
+				$$.label = "";
+			};
 
 BLOCK		: PUSH_SCOPE '{' STATEMENTS '}' POP_SCOPE {
 				$$.transl = $3.transl;
@@ -190,19 +221,21 @@ CONTROL		: "if" EXPR TK_BSTART BLOCK {
 					yyerror("Non-bool expression on if condition.");
 				}
 			}
-			| "while" EXPR TK_BSTART BLOCK {
+			| PUSH_LOOP LOOP POP_LOOP {$$.transl = $2.transl;};
+			;
+			
+LOOP		: "while" EXPR TK_BSTART BLOCK {
 				if ($2.type == "bool") {
 					string var = getNextVar();
-					string begin = getNextLabel();
-					string end = getNextLabel();
+					loop_info* loop = getLoop();
 					
 					decls.push_back("\tint " + var + ";");
 					
-					$$.transl = $2.transl + 
-						begin + ":\t" + var + " = !" + $2.label + ";\n" +
-						"\tif (" + var + ") goto " + end + ";\n" +
+					$$.transl = loop->start + ":" + $2.transl
+						+ "\t" + var + " = !" + $2.label + ";\n" +
+						"\tif (" + var + ") goto " + loop->end + ";\n" +
 						$4.transl +
-						"\tgoto " + begin + ";\n\t" + end + ":\n";
+						"\tgoto " + loop->start + ";\n\t" + loop->end + ":\n";
 				} else {
 					// throw compile error
 					yyerror("Non-bool expression on while condition.");
@@ -210,11 +243,12 @@ CONTROL		: "if" EXPR TK_BSTART BLOCK {
 			}
 			| "do" BLOCK "while" EXPR ';' {
 				if ($4.type == "bool") {
-					string begin = getNextLabel();
+					loop_info* loop = getLoop();
 					
-					$$.transl = begin + ":" + $2.transl
+					$$.transl = loop->start + ":" + $2.transl
 						+ $4.transl + "\tif (" 
-						+ $4.label + ") goto " + begin + ";\n";
+						+ $4.label + ") goto " + loop->start + ";\n\t"
+						+ loop->end + ":\n";
 				} else {
 					// throw compile error
 					yyerror("Non-bool expression on do-while condition.");
@@ -223,17 +257,16 @@ CONTROL		: "if" EXPR TK_BSTART BLOCK {
 			| "for" DECL_OR_ATTR ';' EXPR ';' FOR_ATTR TK_BSTART BLOCK {
 				if ($4.type == "bool") {
 					string var = getNextVar();
-					string begin = getNextLabel();
-					string end = getNextLabel();
+					loop_info* loop = getLoop();
 					
 					decls.push_back("\tint " + var + ";");
 					
-					$$.transl = $2.transl + begin + ":" + $4.transl + 
+					$$.transl = $2.transl + loop->start + ":" + $4.transl + 
 						"\t" + var + " = !" + $4.label + ";\n" +
-						"\tif (" + var + ") goto " + end + ";\n" +
+						"\tif (" + var + ") goto " + loop->end + ";\n" +
 						$8.transl + $6.transl +
-						"\tgoto " + begin + ";\n\t" + 
-						end + ":\n";
+						"\tgoto " + loop->start + ";\n\t" + 
+						loop->end + ":\n";
 				} else {
 					// throw compile error
 					yyerror("Non-bool expression on for condition.");
@@ -1138,6 +1171,23 @@ void pushContext() {
 
 void popContext() {
 	return varMap.pop_back();
+}
+
+void pushLoop(string start, string end) {
+	loop_info newLoop = {start, end};
+	loopMap.push_back(newLoop);
+}
+
+loop_info* getLoop() {
+	if (loopMap.size()) {
+		return &loopMap[loopMap.size() - 1];
+	} else {
+		return nullptr;
+	}
+}
+
+void popLoop() {
+	return loopMap.pop_back();
 }
 
 string getNextVar() {
