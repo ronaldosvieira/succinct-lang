@@ -79,6 +79,7 @@ void yyerror(string);
 %left '+' '-'
 %left '*' '/'
 %left "as"
+%nonassoc "++" "--"
 
 %%
 
@@ -304,86 +305,6 @@ ATTRIBUTION	: TK_ID '=' EXPR {
 					yyerror("Variable " + $1.label + " not declared.");
 				}
 			}
-			| '+' '+' TK_ID {
-				var_info* info = findVar($3.label);
-				
-				if (info != nullptr) {
-					if (!info->isMutable) {
-						yyerror("Increment on constant variable " + $3.label +  ".");
-					}
-					
-					string var = getNextVar();
-					decls.push_back("\tint " + var + ";");
-					
-					// se incremento é permitido
-					if (info->type == "int") {
-						$$.type = $3.type;
-						$$.transl = "\t" + var + " = 1;\n\t" + 
-							info->name + " = " + info->name + " + " + var + ";\n";
-						$$.label = $3.label;
-					} else {
-						string var2 = getNextVar();
-						string resType = opMap[info->type + "=int"];
-						
-						// se conversão é permitida
-						if (resType.size()) {
-							$$.type = $3.type;
-							$$.transl = "\t" + var + " = 1;\n\t" + 
-								var2 + " = (" + info->type + ") " + var + 
-								";\n\t" +
-								info->name + " = " + info->name + " + " + var2 + ";\n";
-							$$.label = $3.label;
-						} else {
-							// throw compile error
-							yyerror("Variable increment with incompatible type " 
-								+ info->type + ".");
-						}
-					}
-				} else {
-					// throw compile error
-					yyerror("Variable " + $3.label + " not declared.");
-				}
-			}
-			| '-' '-' TK_ID {
-				var_info* info = findVar($3.label);
-				
-				if (info != nullptr) {
-					if (!info->isMutable) {
-						yyerror("Decrement on constant variable " + $3.label +  ".");
-					}
-					
-					string var = getNextVar();
-					decls.push_back("\tint " + var + ";");
-					
-					// se incremento é permitido
-					if (info->type == "int") {
-						$$.type = $3.type;
-						$$.transl = "\t" + var + " = 1;\n\t" + 
-							info->name + " = " + info->name + " - " + var + ";\n";
-						$$.label = $3.label;
-					} else {
-						string var2 = getNextVar();
-						string resType = opMap[info->type + "=int"];
-						
-						// se conversão é permitida
-						if (resType.size()) {
-							$$.type = $3.type;
-							$$.transl = "\t" + var + " = 1;\n\t" + 
-								var2 + " = (" + info->type + ") " + var + 
-								";\n\t" +
-								info->name + " = " + info->name + " - " + var2 + ";\n";
-							$$.label = $3.label;
-						} else {
-							// throw compile error
-							yyerror("Variable increment with incompatible type " 
-								+ info->type + ".");
-						}
-					}
-				} else {
-					// throw compile error
-					yyerror("Variable " + $3.label + " not declared.");
-				}
-			}
 			;
 			
 INCR_OR_DECR: INCREMENT
@@ -430,7 +351,7 @@ INCREMENT	: "++" TK_ID {
 					yyerror("Variable " + $2.label + " not declared.");
 				}
 			}
-			| TK_ID "++" {
+			/*| TK_ID "++" {
 				var_info* info = findVar($1.label);
 				
 				if (info != nullptr) {
@@ -473,7 +394,7 @@ INCREMENT	: "++" TK_ID {
 					// throw compile error
 					yyerror("Variable " + $1.label + " not declared.");
 				}
-			}
+			}*/
 			;
 			
 DECREMENT	: "--" TK_ID {
@@ -516,7 +437,7 @@ DECREMENT	: "--" TK_ID {
 					yyerror("Variable " + $2.label + " not declared.");
 				}
 			}
-			| TK_ID "--" {
+			/*| TK_ID "--" {
 				var_info* info = findVar($1.label);
 				
 				if (info != nullptr) {
@@ -559,7 +480,8 @@ DECREMENT	: "--" TK_ID {
 					// throw compile error
 					yyerror("Variable " + $1.label + " not declared.");
 				}
-			}
+			}*/
+			;
 
 DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
 				var_info* info = findVar($2.label);
@@ -1130,6 +1052,11 @@ TYPE		: TK_INT_TYPE
 int yyparse();
 
 int main(int argc, char* argv[]) {
+	/*#ifdef YYDEBUG
+	    extern int yydebug;
+	    yydebug = 1;
+	#endif*/
+
 	opMapFile.open("util/opmap.dat");
 	padraoMapFile.open("util/default.dat");
 	
