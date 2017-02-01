@@ -26,20 +26,37 @@ typedef struct var_info {
 string type1, type2, op, typeRes, value;
 ifstream opMapFile, padraoMapFile;
 
-vector<string> decls;
-vector<map<string, var_info>> varMap;
-map<string, string> opMap;
-map<string, string> padraoMap;
 int tempGen = 0;
 int tempLabel = 0;
 
+// declarações de variáveis
+vector<string> decls;
+
+// pilha de mapas de variável
+vector<map<string, var_info>> varMap;
+
+// mapa de operações e tipos resultantes
+map<string, string> opMap;
+
+// mapa de valores padrão de cada tipo
+map<string, string> padraoMap;
+
+// obtém o próximo nome de variável disponível
 string getNextVar();
+
+// obtém o próximo nome de label disponível
 string getNextLabel();
 
+// inicia um novo contexto
 void pushContext();
+
+// destrói o contexto atual
 void popContext();
 
+// procura uma variável na pilha de contextos
 var_info* findVar(string label);
+
+// insere uma nova variável no contexto atual
 void insertVar(string label, var_info info);
 
 int yylex(void);
@@ -105,14 +122,14 @@ PUSH_SCOPE: {
 				
 				$$.transl = "";
 				$$.label = "";
-			}
+			};
 			
 POP_SCOPE:	{
 				popContext();
 				
 				$$.transl = "";
 				$$.label = "";
-			}
+			};
 
 BLOCK		: PUSH_SCOPE '{' STATEMENTS '}' POP_SCOPE {
 				$$.transl = $3.transl;
@@ -121,7 +138,7 @@ BLOCK		: PUSH_SCOPE '{' STATEMENTS '}' POP_SCOPE {
 STATEMENTS	: STATEMENT STATEMENTS {
 				$$.transl = $1.transl + "\n" + $2.transl;
 			}
-			| { $$.transl = ""; }
+			| {$$.transl = "";}
 			;
 
 STATEMENT 	: EXPR ';' {
@@ -226,15 +243,17 @@ CONTROL		: "if" EXPR TK_BSTART BLOCK {
 			
 WRITE		: "write" WRITE_ARGS {
 				$$.transl = "\tstd::cout" + $2.transl + ";\n";
-			};
+			}
+			;
 		
 WRITE_ARGS	: WRITE_ARG WRITE_ARGS {
 				$$.transl = $1.transl + $2.transl;
 			}
-			| WRITE_ARG { $$.transl = $1.transl; };
+			| WRITE_ARG {$$.transl = $1.transl;}
+			;
 			
-WRITE_ARG	: EXPR { $$.transl = " << " + $1.label; }
-			| TK_ENDL { $$.transl = " << std::endl"; }
+WRITE_ARG	: EXPR {$$.transl = " << " + $1.label;}
+			| TK_ENDL {$$.transl = " << std::endl";}
 			;
 			
 FOR_ATTR	: ATTRIBUTION
@@ -992,7 +1011,8 @@ EXPR 		: EXPR '+' EXPR {
 				}
 			}
 			| INCR_OR_DECR
-			| VALUE_OR_ID;
+			| VALUE_OR_ID
+			;
 			
 VALUE_OR_ID	: TK_NUM {
 				string var = getNextVar();
