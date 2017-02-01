@@ -75,7 +75,15 @@ int p = 0;
 while p < 5: {
 	write p endl;
 	
-	break;
+	int pp = 0;
+	
+	while pp < 5: {
+		write pp endl;
+		
+		break all;
+		
+		pp = pp + 1;
+	}
 	
 	p = p + 1;
 }

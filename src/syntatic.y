@@ -70,8 +70,11 @@ void insertVar(string label, var_info info);
 // registra um novo loop
 void pushLoop(string start, string end);
 
-// obtem o loop atual
+// obtém o loop atual
 loop_info* getLoop();
+
+// obtém o loop mais exterior
+loop_info* getOuterLoop();
 
 // remove o loop atual
 void popLoop();
@@ -105,6 +108,7 @@ void yyerror(string);
 %token TK_INCR "++"
 %token TK_DECR "--"
 %token TK_BREAK "break"
+%token TK_ALL "all"
 
 %start S
 
@@ -183,8 +187,21 @@ STATEMENT 	: EXPR ';' {
 				$$.transl = $1.transl;
 			}
 			| CONTROL
-			| "break" ';' {
+			| LOOP_CTRL ';' {
+				$$.transl = $1.transl;
+			}
+			
+LOOP_CTRL	: "break" {
 				loop_info* loop = getLoop();
+				
+				if (loop != nullptr) {
+					$$.transl = "\tgoto " + loop->end + ";\n";
+				} else {
+					yyerror("Break statements should be used inside a loop.");
+				}
+			}
+			| "break" "all" {
+				loop_info* loop = getOuterLoop();
 				
 				if (loop != nullptr) {
 					$$.transl = "\tgoto " + loop->end + ";\n";
@@ -1191,6 +1208,14 @@ void pushLoop(string start, string end) {
 loop_info* getLoop() {
 	if (loopMap.size()) {
 		return &loopMap[loopMap.size() - 1];
+	} else {
+		return nullptr;
+	}
+}
+
+loop_info* getOuterLoop() {
+	if (loopMap.size()) {
+		return &loopMap[0];
 	} else {
 		return nullptr;
 	}

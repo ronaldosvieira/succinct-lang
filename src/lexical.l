@@ -57,6 +57,7 @@ COMML	    "//"[^\n]*
 "do"        { return TK_DO; }
 
 "break"     { return TK_BREAK; }
+"all"       { return TK_ALL; }
 
 "write"     { return TK_WRITE; }
 "endl"      { return TK_ENDL; }
