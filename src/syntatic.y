@@ -93,7 +93,7 @@ void yyerror(string);
 %token TK_DOUBLE_TYPE TK_LONG_TYPE TK_STRING_TYPE TK_BOOL_TYPE
 %token TK_FIM TK_ERROR
 %token TK_ENDL
-%token TK_BREAK TK_BSTART
+%token TK_BSTART
 %token TK_AND "and"
 %token TK_OR "or"
 %token TK_XOR "xor"
@@ -104,6 +104,7 @@ void yyerror(string);
 %token TK_EQ "=="
 %token TK_INCR "++"
 %token TK_DECR "--"
+%token TK_BREAK "break"
 
 %start S
 
@@ -182,6 +183,15 @@ STATEMENT 	: EXPR ';' {
 				$$.transl = $1.transl;
 			}
 			| CONTROL
+			| "break" ';' {
+				loop_info* loop = getLoop();
+				
+				if (loop != nullptr) {
+					$$.transl = "\tgoto " + loop->end + ";\n";
+				} else {
+					yyerror("Break statements should be used inside a loop.");
+				}
+			}
 			;
 			
 CONTROL		: "if" EXPR TK_BSTART BLOCK {

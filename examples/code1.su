@@ -75,5 +75,7 @@ int p = 0;
 while p < 5: {
 	write p endl;
 	
+	break;
+	
 	p = p + 1;
 }
