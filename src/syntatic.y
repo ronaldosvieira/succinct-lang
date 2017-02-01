@@ -203,7 +203,7 @@ CONTROL		: "if" EXPR TK_BSTART BLOCK {
 					yyerror("Non-bool expression on do-while condition.");
 				}
 			}
-			| "for" DECL_OR_ATTR ';' EXPR ';' ATTRIBUTION TK_BSTART BLOCK {
+			| "for" DECL_OR_ATTR ';' EXPR ';' FOR_ATTR TK_BSTART BLOCK {
 				if ($4.type == "bool") {
 					string var = getNextVar();
 					string begin = getNextLabel();
@@ -235,6 +235,10 @@ WRITE_ARGS	: WRITE_ARG WRITE_ARGS {
 			
 WRITE_ARG	: EXPR { $$.transl = " << " + $1.label; }
 			| TK_ENDL { $$.transl = " << std::endl"; }
+			;
+			
+FOR_ATTR	: ATTRIBUTION
+			| INCR_OR_DECR
 			;
 
 DECL_OR_ATTR: DECLARATION
