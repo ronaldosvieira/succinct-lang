@@ -57,6 +57,8 @@ COMML	    "//"[^\n]*
 "do"        { return TK_DO; }
 "switch"    { return TK_SWITCH; }
 "case"      { return TK_CASE; }
+"default"   { return TK_DEFAULT; }
+"EMPTY_STRING" { TK_EMPTY_STRING; }
 
 "write"     { return TK_WRITE; }
 "endl"      { return TK_ENDL; }
