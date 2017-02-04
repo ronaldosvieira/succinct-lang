@@ -24,9 +24,9 @@ ALPHA		{LETTER}|{DIGIT}
 AMPERSAND	&
 
 BREAK		\r?\n
-INDENT		" "{4}|\t
+INDENT		\s{4}|\t
 /*Alterei o regex do espaço para qualquer quantidade de espaço*/
-SPACE		[" "]{1,3}
+SPACE		\s{1,3}
 
 INT     	{DIGIT}+
 FLOAT   	{DIGIT}+(\.{DIGIT}*)?([eE][\-\+]?{DIGIT}+)?[fF]
