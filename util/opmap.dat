@@ -34,6 +34,7 @@ double arit float double simple-aritmethic
 double arit double double simple-aritmethic
 double arit int double simple-aritmethic
 int arit double double simple-aritmethic
+string + string string string-concat
 int = int int null
 int = float int null
 int = double int null
@@ -55,6 +56,7 @@ char = double char null
 char = char char null
 char = bool char null
 bool = bool bool null
+string = string string null
 int rel int int simple-relational
 int rel float float simple-relational
 int rel double double simple-relational

@@ -1,89 +1,9 @@
-1.0 * 2 - 3;
-1.0 * (2 - 3);
-4 + 5.0;
-float x = 3.0f;
-x + 1;
-bool b = false;
-char k = 'c';
+string teste1 = "kkk";
 
-k = 'z';
+string teste2 = "aaa";
 
-float a = 1.0f;
-a = 2.0;
-float i;
+string teste3 = "aaa" + "b";
 
-true and true or false;
-true && true || false;
-false or true;
-false xor true;
-4 <= 2.0;
-4 lte 2;
-
-int l = 1.0f as int;
-int j = 2;
-2.0f as double;
-
-3 as float / 2;
-3 / 2 as float;
-(3 / 2) as float;
-
-write j as float;
-write b;
-write true;
-
-b = not not b;
-b = !!b;
-
-if b: {
-	1 + 1;
-} else: {
-	2 + 2;
-}
-
-while b: {}
-
-for int kk = 0; 
-	kk < 5; 
-	kk = kk + 1: {
-	write kk endl;
-}
-
-do {
-	int scope = 1;
-	
-	write scope endl;
-} while false;
-
-// write scope; (error)
-
-const int aaa = 2;
-
-// aaa = 3; (error)
-
-float n = 0;
-
-n = 1.0;
-
-1 + ++n;
-2 + --n;
-
-// 3 + n++;
-// 4 + n--;
-
-int p = 0;
-
-while p < 5: {
-	write p endl;
-	
-	int pp = 0;
-	
-	while pp < 5: {
-		write pp endl;
-		
-		break all;
-		
-		pp = pp + 1;
-	}
-	
-	p = p + 1;
-}
+write teste1 endl;
+write teste2 endl;
+write teste3 endl;

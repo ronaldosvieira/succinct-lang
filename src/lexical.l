@@ -119,6 +119,18 @@ COMML	    "//"[^\n]*
     return TK_CHAR;
 }
 
+{STRING}    {
+    string label = yytext;
+    
+    label.replace(label.begin(), label.begin() + 1, "");
+	label.replace(label.end() - 1, label.end(), "");
+	
+    yylval.transl = "";
+    yylval.label = label;
+    yylval.type = "string";
+    return TK_STRING;
+}
+
 {BOOL}      {
     yylval.transl = "";
     yylval.label = yytext;

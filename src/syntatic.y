@@ -17,6 +17,7 @@ using namespace std;
 typedef struct attributes {
 	string label; // nome da variável usada no cód. intermediário (ex: "t0")
 	string type; // tipo no código intermediário (ex: "int")
+	int size; // tamanho da variável; usado somente com strings
 	string transl; // código intermediário (ex: "int t11 = 1;")
 } node;
 
@@ -101,13 +102,14 @@ strategy getStrategy(string op, string type1, string type2);
 node doSimpleAritOp(string op, node left, node right);
 node doSimpleRelOp(string op, node left, node right);
 node doSimpleLogicOp(string op, node left, node right);
+node doStringConcat(string op, node left, node right);
 node fallback(string op, node left, node right);
 
 int yylex(void);
 void yyerror(string);
 %}
 
-%token TK_NUM TK_CHAR TK_BOOL
+%token TK_NUM TK_CHAR TK_STRING TK_BOOL
 %token TK_IF "if"
 %token TK_WHILE "while"
 %token TK_FOR "for"
@@ -403,10 +405,12 @@ ATTRIBUTION	: TK_ID '=' EXPR {
 					
 					// se tipo da expr for igual a do id
 					if (info->type == $3.type) {
-						//varMap[$1.label] = {info.type, $3.label, true};
+						string label = $3.label;
+						
+						if ($3.type == "string") label = "strdup(" + label + ")";
+						
 						$$.type = $3.type;
-						//$$.transl = $3.transl;
-						$$.transl = $3.transl + "\t" + info->name + " = " + $3.label + ";\n";
+						$$.transl = $3.transl + "\t" + info->name + " = " + label + ";\n";
 						$$.label = $3.label;
 					} else {
 						string var = getNextVar();
@@ -420,8 +424,6 @@ ATTRIBUTION	: TK_ID '=' EXPR {
 								info->name + " = " + var + ";\n";
 							$$.type = info->type;
 							$$.label = var;
-							
-							//varMap[$1.label] = {info.type, var};
 						} else {
 							// throw compile error
 							yyerror("Variable assignment with incompatible types " 
@@ -833,6 +835,14 @@ VALUE_OR_ID	: TK_NUM {
 				$$.transl = "\t" + var + " = " + $1.label + ";\n";
 				$$.label = var;
 			}
+			| TK_STRING {
+				string var = getNextVar();
+				
+				decls.push_back("\tchar* " + var + ";");
+				$$.transl = "\t" + var + " = (char*) \"" + $1.label + "\";\n";
+				$$.size = $1.label.size();
+				$$.label = var;
+			}
 			| TK_ID {
 				var_info* info = findVar($1.label);
 				
@@ -912,6 +922,7 @@ int main(int argc, char* argv[]) {
 	strategyMap["simple-aritmethic"] = doSimpleAritOp;
 	strategyMap["simple-relational"] = doSimpleRelOp;
 	strategyMap["simple-logic"] = doSimpleLogicOp;
+	strategyMap["string-concat"] = doStringConcat;
 	
 	// insert global context
 	map<string, var_info> globalContext;
@@ -1114,6 +1125,30 @@ node doSimpleLogicOp(string op, node left, node right) {
 	decls.push_back("\tint " + var + ";");
 	result.transl = left.transl + right.transl + 
 	"\t" + var + " = " + left.label + " " + op + " " + right.label + ";\n";
+	result.label = var;
+	
+	return result;
+}
+
+node doStringConcat(string op, node left, node right) {
+	node result;
+	string var = getNextVar();
+	string resType, tempOp = op;
+	
+	do {
+		resType = opMap[left.type + tempOp + right.type];
+		tempOp = typeMap[tempOp];
+	} while (resType.empty() && !tempOp.empty());
+	
+	result.transl = left.transl + right.transl;
+	
+	result.type = resType;
+	decls.push_back("\tchar* " + var + ";");
+	
+	result.transl += 
+		"\t" + var + " = (char*) malloc(" + to_string(left.size + right.size) + 
+		" * sizeof(char));\n\tstrcpy(" + var + ", " + left.label + 
+		");\n\tstrcat(" + var + ", " + right.label + ");\n";
 	result.label = var;
 	
 	return result;
