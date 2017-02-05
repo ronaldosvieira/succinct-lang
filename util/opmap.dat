@@ -1,160 +1,110 @@
-int arit int int
-int arit float float
-float arit int float
-float arit float float
-float arit double double
-double arit float double
-double arit double double
-double arit int double
-int arit double double
-int arit int int
-int arit float float
-float arit int float
-float arit float float
-float arit double double
-double arit float double
-double arit double double
-double arit int double
-int arit double double
-int arit int int
-int arit float float
-float arit int float
-float arit float float
-float arit double double
-double arit float double
-double arit double double
-double arit int double
-int arit double double
-int arit int int
-int arit float float
-float arit int float
-float arit float float
-float arit double double
-double arit float double
-double arit double double
-double arit int double
-int arit double double
-int = int int
-int = float int
-int = double int
-int = char int
-int = bool int
-float = int float
-float = float float
-float = double float
-float = char float
-float = bool float
-double = float double
-double = double double
-double = int double
-double = char double
-double = bool double
-char = int char
-char = float char
-char = double char
-char = char char
-char = bool char
-bool = bool bool
-int rel int int
-int rel float float
-int rel double double
-int rel char int
-int rel bool int
-float rel int float
-float rel float float
-float rel double double
-float rel char float
-float rel bool float
-double rel float double
-double rel double double
-double rel int double
-double rel char double
-double rel bool double
-char rel int int
-char rel float float
-char rel double double
-char rel char char
-char rel bool char
-bool rel int int
-bool rel float float
-bool rel double double
-bool rel char char
-bool rel bool bool
-bool && bool bool
-bool || bool bool
-int == int bool
-int == float bool
-int == double bool
-int == char bool
-int == bool bool
-float == int bool
-float == float bool
-float == double bool
-float == char bool
-float == bool bool
-double == float bool
-double == double bool
-double == int bool
-double == char bool
-double == bool bool
-char == int bool
-char == float bool
-char == double bool
-char == char bool
-char == bool bool
-bool == int bool
-bool == float bool
-bool == double bool
-bool == char bool
-bool == bool bool
-int != int bool
-int != float bool
-int != double bool
-int != char bool
-int != bool bool
-float != int bool
-float != float bool
-float != double bool
-float != char bool
-float != bool bool
-double != float bool
-double != double bool
-double != int bool
-double != char bool
-double != bool bool
-char != int bool
-char != float bool
-char != double bool
-char != char bool
-char != bool bool
-bool != int bool
-bool != float bool
-bool != double bool
-bool != char bool
-bool != bool bool
-int cast int int
-int cast float int
-int cast double int
-int cast char int
-int cast bool int
-float cast int float
-float cast float float
-float cast double float
-float cast char float
-float cast bool float
-double cast float double
-double cast int double
-double cast char double
-double cast bool double
-double cast double double
-char cast int char
-char cast float char
-char cast double char
-char cast char char
-char cast bool char
-bool cast int int
-bool cast float int
-bool cast double int
-bool cast char int
-bool cast bool int
-bool cast float int
+int arit int int simple-aritmethic
+int arit float float simple-aritmethic
+float arit int float simple-aritmethic
+float arit float float simple-aritmethic
+float arit double double simple-aritmethic
+double arit float double simple-aritmethic
+double arit double double simple-aritmethic
+double arit int double simple-aritmethic
+int arit double double simple-aritmethic
+int arit int int simple-aritmethic
+int arit float float simple-aritmethic
+float arit int float simple-aritmethic
+float arit float float simple-aritmethic
+float arit double double simple-aritmethic
+double arit float double simple-aritmethic
+double arit double double simple-aritmethic
+double arit int double simple-aritmethic
+int arit double double simple-aritmethic
+int arit int int simple-aritmethic
+int arit float float simple-aritmethic
+float arit int float simple-aritmethic
+float arit float float simple-aritmethic
+float arit double double simple-aritmethic
+double arit float double simple-aritmethic
+double arit double double simple-aritmethic
+double arit int double simple-aritmethic
+int arit double double simple-aritmethic
+int arit int int simple-aritmethic
+int arit float float simple-aritmethic
+float arit int float simple-aritmethic
+float arit float float simple-aritmethic
+float arit double double simple-aritmethic
+double arit float double simple-aritmethic
+double arit double double simple-aritmethic
+double arit int double simple-aritmethic
+int arit double double simple-aritmethic
+int = int int null
+int = float int null
+int = double int null
+int = char int null
+int = bool int null
+float = int float null
+float = float float null
+float = double float null
+float = char float null
+float = bool float null
+double = float double null
+double = double double null
+double = int double null
+double = char double null
+double = bool double null
+char = int char null
+char = float char null
+char = double char null
+char = char char null
+char = bool char null
+bool = bool bool null
+int rel int int simple-relational
+int rel float float simple-relational
+int rel double double simple-relational
+int rel char int simple-relational
+int rel bool int simple-relational
+float rel int float simple-relational
+float rel float float simple-relational
+float rel double double simple-relational
+float rel char float simple-relational
+float rel bool float simple-relational
+double rel float double simple-relational
+double rel double double simple-relational
+double rel int double simple-relational
+double rel char double simple-relational
+double rel bool double simple-relational
+char rel int int simple-relational
+char rel float float simple-relational
+char rel double double simple-relational
+char rel char char simple-relational
+char rel bool char simple-relational
+bool rel int int simple-relational
+bool rel float float simple-relational
+bool rel double double simple-relational
+bool rel char char simple-relational
+bool rel bool bool simple-relational
+bool && bool bool simple-logic
+bool || bool bool simple-logic
+int cast int int null
+int cast float int null
+int cast double int null
+int cast char int null
+int cast bool int null
+float cast int float null
+float cast float float null
+float cast double float null
+float cast char float null
+float cast bool float null
+double cast float double null
+double cast int double null
+double cast char double null
+double cast bool double null
+double cast double double null
+char cast int char null
+char cast float char null
+char cast double char null
+char cast char char null
+char cast bool char null
+bool cast int int null
+bool cast float int null
+bool cast double int null
+bool cast char int null
+bool cast bool int null
+bool cast float int null

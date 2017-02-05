@@ -3,7 +3,7 @@
 4 + 5.0;
 float x = 3.0f;
 x + 1;
-bool b = true;
+bool b = false;
 char k = 'c';
 
 k = 'z';

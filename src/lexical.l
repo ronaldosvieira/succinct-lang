@@ -33,10 +33,10 @@ FLOAT   	{DIGIT}+(\.{DIGIT}*)?([eE][\-\+]?{DIGIT}+)?[fF]
 DOUBLE		{DIGIT}+(\.{DIGIT}*)?([eE][\-\+]?{DIGIT}+)?[dD]?
 LONG		{DIGIT}+[lL]
 CHAR		\'[^\'\n]\'
-STRING		\'[^\'\n]+\'|\"[^\'\n]+\"
+STRING	    \"[^\"]*\"
 BOOL        "true"|"false"
 
-ID          {ALPHA}{ALPHA}*
+ID          {LETTER}{ALPHA}*
 /* CONST       [{UPALPHA}_\-]*{UPPER}[{UPALPHA}_\-*]* */
 
 COMMBST	    "/*"
@@ -57,6 +57,7 @@ COMML	    "//"[^\n]*
 "do"        { return TK_DO; }
 
 "break"     { return TK_BREAK; }
+"continue"  { return TK_CONT; }
 "all"       { return TK_ALL; }
 
 "write"     { return TK_WRITE; }
@@ -125,7 +126,10 @@ COMML	    "//"[^\n]*
     return TK_BOOL;
 }
 
-{ID}		{ yylval.label = yytext; return TK_ID; }
+{ID}		{
+    yylval.label = yytext;
+    return TK_ID;
+}
 
 {BREAK}		{}
 
