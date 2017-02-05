@@ -6,16 +6,19 @@
 #include <fstream>
 #include <vector>
 #include <algorithm>
+#include <functional>
 
 #define YYSTYPE attributes
 
 using namespace std;
 
-struct attributes {
+/******* declarações *******/
+
+typedef struct attributes {
 	string label; // nome da variável usada no cód. intermediário (ex: "t0")
 	string type; // tipo no código intermediário (ex: "int")
 	string transl; // código intermediário (ex: "int t11 = 1;")
-};
+} node;
 
 typedef struct var_info {
 	string type; // tipo da variável usada no cód. intermediário (ex: "int")
@@ -28,7 +31,9 @@ typedef struct loop_info {
 	string end; // nome da label do fim do bloco
 } loop_info;
 
-string type1, type2, op, typeRes, value;
+typedef function<node(string, node, node)> strategy;
+
+string type1, type2, op, typeRes, strategyName, value;
 ifstream opMapFile, padraoMapFile;
 
 int tempGen = 0;
@@ -43,11 +48,20 @@ vector<map<string, var_info>> varMap;
 // pilha de labels de loops
 vector<loop_info> loopMap;
 
-// mapa de operações e tipos resultantes
+// mapa de tipos
+map<string, string> typeMap;
+
+// tipo + op + tipo => tipo resultante
 map<string, string> opMap;
+
+// tipo + op + tipo => estratégia a utilizar
+map<string, string> preStrategyMap;
 
 // mapa de valores padrão de cada tipo
 map<string, string> padraoMap;
+
+// mapa de estratégias
+map<string, strategy> strategyMap;
 
 // obtém o próximo nome de variável disponível
 string getNextVar();
@@ -78,6 +92,15 @@ loop_info* getOuterLoop();
 
 // remove o loop atual
 void popLoop();
+
+// obtém a estratégia para os tipos e operação especificadas
+strategy getStrategy(string op, string type1, string type2);
+
+/* strategy declarations */
+node doSimpleAritOp(string op, node left, node right);
+node doSimpleRelOp(string op, node left, node right);
+node doSimpleLogicOp(string op, node left, node right);
+node fallback(string op, node left, node right);
 
 int yylex(void);
 void yyerror(string);
@@ -262,7 +285,7 @@ LOOP		: "while" EXPR TK_BSTART BLOCK {
 						+ "\t" + var + " = !" + $2.label + ";\n" +
 						"\tif (" + var + ") goto " + loop->end + ";\n" +
 						$4.transl +
-						"\tgoto " + loop->start + ";\n\t" + loop->end + ":\n";
+						"\tgoto " + loop->start + ";\n" + loop->end + ":\n";
 				} else {
 					// throw compile error
 					yyerror("Non-bool expression on while condition.");
@@ -274,7 +297,7 @@ LOOP		: "while" EXPR TK_BSTART BLOCK {
 					
 					$$.transl = loop->start + ":" + $2.transl
 						+ $4.transl + "\tif (" 
-						+ $4.label + ") goto " + loop->start + ";\n\t"
+						+ $4.label + ") goto " + loop->start + ";\n"
 						+ loop->end + ":\n";
 				} else {
 					// throw compile error
@@ -292,7 +315,7 @@ LOOP		: "while" EXPR TK_BSTART BLOCK {
 						"\t" + var + " = !" + $4.label + ";\n" +
 						"\tif (" + var + ") goto " + loop->end + ";\n" +
 						$8.transl + $6.transl +
-						"\tgoto " + loop->start + ";\n\t" + 
+						"\tgoto " + loop->start + ";\n" + 
 						loop->end + ":\n";
 				} else {
 					// throw compile error
@@ -417,6 +440,8 @@ INCREMENT	: "++" TK_ID {
 						
 						// se conversão é permitida
 						if (resType.size()) {
+							decls.push_back("\t" + resType + " " + var2 + ";");
+							
 							$$.type = $2.type;
 							$$.transl = "\t" + var + " = 1;\n\t" + 
 								var2 + " = (" + info->type + ") " + var + 
@@ -503,6 +528,8 @@ DECREMENT	: "--" TK_ID {
 						
 						// se conversão é permitida
 						if (resType.size()) {
+							decls.push_back("\t" + resType + " " + var2 + ";\n");
+							
 							$$.type = $2.type;
 							$$.transl = "\t" + var + " = 1;\n\t" + 
 								var2 + " = (" + info->type + ") " + var + 
@@ -633,386 +660,64 @@ DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
 			;
 
 EXPR 		: EXPR '+' EXPR {
-				string var = getNextVar();
-				string resType = opMap[$1.type + "arit" + $3.type];
+				strategy strat = getStrategy("+", $1.type, $3.type);
 				
-				if (resType.size()) {
-					$$.transl = $1.transl + $3.transl;
-					
-					if ($1.type != resType) {
-						string var1 = getNextVar();
-						decls.push_back("\t" + resType + " " + var1 + ";");
-						$$.transl += "\t" + var1 + " = (" + 
-							resType + ") " + $1.label + ";\n";
-						
-						$1.label = var1;
-					}
-					
-					if ($3.type != resType) {
-						string var1 = getNextVar();
-						decls.push_back("\t" + resType + " " + var1 + ";");
-						$$.transl += "\t" + var1 + " = (" + 
-							resType + ") " + $3.label + "\n";
-						
-						$3.label = var1;
-					}
-					
-					$$.type = resType;
-					decls.push_back("\t" + $$.type + " " + var + ";");
-					$$.transl += "\t" + var + " = " + 
-						$1.label + " + " + $3.label + ";\n";
-					$$.label = var;
-				} else {
-					// throw compile error
-					yyerror("Arithmetic operation between types " 
-					+ $1.type + " and " + $3.type + " is not defined.");
-				}
+				$$ = strat("+", $1, $3);
 			}
 			| EXPR '-' EXPR {
-				string var = getNextVar();
-				string resType = opMap[$1.type + "arit" + $3.type];
+				strategy strat = getStrategy("-", $1.type, $3.type);
 				
-				if (resType.size()) {
-					$$.transl = $1.transl + $3.transl;
-					
-					if ($1.type != resType) {
-						string var1 = getNextVar();
-						decls.push_back("\t" + resType + " " + var1 + ";");
-						$$.transl += "\t" + var1 + " = (" + 
-							resType + ") " + $1.label + ";\n";
-						
-						$1.label = var1;
-					}
-					
-					if ($3.type != resType) {
-						string var1 = getNextVar();
-						decls.push_back("\t" + resType + " " + var1 + ";");
-						$$.transl += "\t" + var1 + " = (" + 
-							resType + ") " + $3.label + "\n";
-						
-						$3.label = var1;
-					}
-					
-					$$.type = resType;
-					decls.push_back("\t" + $$.type + " " + var + ";");
-					$$.transl += "\t" + var + " = " + 
-						$1.label + " - " + $3.label + ";\n";
-					$$.label = var;
-				} else {
-					// throw compiler error
-					yyerror("Arithmetic operation between types " 
-					+ $1.type + " and " + $3.type + " is not defined.");
-				}
+				$$ = strat("-", $1, $3);
 			}
 			| EXPR '*' EXPR {
-				string var = getNextVar();
-				string resType = opMap[$1.type + "arit" + $3.type];
+				strategy strat = getStrategy("*", $1.type, $3.type);
 				
-				if (resType.size()) {
-					$$.transl = $1.transl + $3.transl;
-					
-					if ($1.type != resType) {
-						string var1 = getNextVar();
-						decls.push_back("\t" + resType + " " + var1 + ";");
-						$$.transl += "\t" + var1 + " = (" + 
-							resType + ") " + $1.label + ";\n";
-						
-						$1.label = var1;
-					}
-					
-					if ($3.type != resType) {
-						string var1 = getNextVar();
-						decls.push_back("\t" + resType + " " + var1 + ";");
-						$$.transl += "\t" + var1 + " = (" + 
-							resType + ") " + $3.label + "\n";
-						
-						$3.label = var1;
-					}
-					
-					$$.type = resType;
-					decls.push_back("\t" + $$.type + " " + var + ";");
-					$$.transl += "\t" + var + " = " + 
-						$1.label + " * " + $3.label + ";\n";
-					$$.label = var;
-				} else {
-					// throw compiler error
-					yyerror("Arithmetic operation between types " 
-					+ $1.type + " and " + $3.type + " is not defined.");
-				}
+				$$ = strat("*", $1, $3);
 			}
 			| EXPR '/' EXPR {
-				string var = getNextVar();
-				string resType = opMap[$1.type + "arit" + $3.type];
+				strategy strat = getStrategy("/", $1.type, $3.type);
 				
-				if (resType.size()) {
-					$$.transl = $1.transl + $3.transl;
-					
-					if ($1.type != resType) {
-						string var1 = getNextVar();
-						decls.push_back("\t" + resType + " " + var1 + ";");
-						$$.transl += "\t" + var1 + " = (" + 
-							resType + ") " + $1.label + ";\n";
-						
-						$1.label = var1;
-					}
-					
-					if ($3.type != resType) {
-						string var1 = getNextVar();
-						decls.push_back("\t" + resType + " " + var1 + ";");
-						$$.transl += "\t" + var1 + " = (" + 
-							resType + ") " + $3.label + "\n";
-						
-						$3.label = var1;
-					}
-					
-					$$.type = resType;
-					decls.push_back("\t" + $$.type + " " + var + ";");
-					$$.transl += "\t" + var + " = " + 
-						$1.label + " / " + $3.label + ";\n";
-					$$.label = var;
-				} else {
-					// throw compiler error
-					yyerror("Arithmetic operation between types " 
-					+ $1.type + " and " + $3.type + " is not defined.");
-				}
+				$$ = strat("/", $1, $3);
 			}
 			| EXPR '<' EXPR {
-				string var = getNextVar();
-				string resType = opMap[$1.type + "rel" + $3.type];
+				strategy strat = getStrategy("<", $1.type, $3.type);
 				
-				if (resType.size()) {
-					$$.transl = $1.transl + $3.transl;
-					
-					if ($1.type != resType) {
-						string var1 = getNextVar();
-						decls.push_back("\t" + resType + " " + var1 + ";");
-						$$.transl += "\t" + var1 + " = (" + 
-							resType + ") " + $1.label + ";\n";
-						
-						$1.label = var1;
-					}
-					
-					if ($3.type != resType) {
-						string var1 = getNextVar();
-						decls.push_back("\t" + resType + " " + var1 + ";");
-						$$.transl += "\t" + var1 + " = (" + 
-							resType + ") " + $3.label + "\n";
-						
-						$3.label = var1;
-					}
-				
-					$$.type = "bool";
-					decls.push_back("\tint " + var + ";");
-					$$.transl += "\t" + var + " = " + 
-						$1.label + " < " + $3.label + ";\n";
-					$$.label = var;
-				} else {
-					// throw compiler error
-					yyerror("Relational operation between non-bools.");
-				}
+				$$ = strat("<", $1, $3);
 			}
 			| EXPR '>' EXPR {
-				string var = getNextVar();
-				string resType = opMap[$1.type + "rel" + $3.type];
+				strategy strat = getStrategy(">", $1.type, $3.type);
 				
-				if (resType.size()) {
-					$$.transl = $1.transl + $3.transl;
-					
-					if ($1.type != resType) {
-						string var1 = getNextVar();
-						decls.push_back("\t" + resType + " " + var1 + ";");
-						$$.transl += "\t" + var1 + " = (" + 
-							resType + ") " + $1.label + ";\n";
-						
-						$1.label = var1;
-					}
-					
-					if ($3.type != resType) {
-						string var1 = getNextVar();
-						decls.push_back("\t" + resType + " " + var1 + ";");
-						$$.transl += "\t" + var1 + " = (" + 
-							resType + ") " + $3.label + "\n";
-						
-						$3.label = var1;
-					}
-				
-					$$.type = "bool";
-					decls.push_back("\tint " + var + ";");
-					$$.transl += "\t" + var + " = " + 
-						$1.label + " > " + $3.label + ";\n";
-					$$.label = var;
-				} else {
-					// throw compiler error
-					yyerror("Relational operation between non-bools.");
-				}
+				$$ = strat(">", $1, $3);
 			}
 			| EXPR "<=" EXPR {
-				string var = getNextVar();
-				string resType = opMap[$1.type + "rel" + $3.type];
+				strategy strat = getStrategy("<=", $1.type, $3.type);
 				
-				if (resType.size()) {
-					$$.transl = $1.transl + $3.transl;
-					
-					if ($1.type != resType) {
-						string var1 = getNextVar();
-						decls.push_back("\t" + resType + " " + var1 + ";");
-						$$.transl += "\t" + var1 + " = (" + 
-							resType + ") " + $1.label + ";\n";
-						
-						$1.label = var1;
-					}
-					
-					if ($3.type != resType) {
-						string var1 = getNextVar();
-						decls.push_back("\t" + resType + " " + var1 + ";");
-						$$.transl += "\t" + var1 + " = (" + 
-							resType + ") " + $3.label + "\n";
-						
-						$3.label = var1;
-					}
-				
-					$$.type = "bool";
-					decls.push_back("\tint " + var + ";");
-					$$.transl += "\t" + var + " = " + 
-						$1.label + " <= " + $3.label + ";\n";
-					$$.label = var;
-				} else {
-					// throw compiler error
-					yyerror("Relational operation between non-bools.");
-				}
+				$$ = strat("<=", $1, $3);
 			}
 			| EXPR ">=" EXPR {
-				string var = getNextVar();
-				string resType = opMap[$1.type + "rel" + $3.type];
+				strategy strat = getStrategy(">=", $1.type, $3.type);
 				
-				if (resType.size()) {
-					$$.transl = $1.transl + $3.transl;
-					
-					if ($1.type != resType) {
-						string var1 = getNextVar();
-						decls.push_back("\t" + resType + " " + var1 + ";");
-						$$.transl += "\t" + var1 + " = (" + 
-							resType + ") " + $1.label + ";\n";
-						
-						$1.label = var1;
-					}
-					
-					if ($3.type != resType) {
-						string var1 = getNextVar();
-						decls.push_back("\t" + resType + " " + var1 + ";");
-						$$.transl += "\t" + var1 + " = (" + 
-							resType + ") " + $3.label + "\n";
-						
-						$3.label = var1;
-					}
-				
-					$$.type = "bool";
-					decls.push_back("\tint " + var + ";");
-					$$.transl = $1.transl + $3.transl + 
-						"\t" + var + " = " + $1.label + " >= " + $3.label + ";\n";
-					$$.label = var;
-				} else {
-					// throw compiler error
-					yyerror("Relational operation between non-bools.");
-				}
+				$$ = strat(">=", $1, $3);
 			}
 			| EXPR "==" EXPR {
-				string var = getNextVar();
-				string resType = opMap[$1.type + "rel" + $3.type];
+				strategy strat = getStrategy("==", $1.type, $3.type);
 				
-				if (resType.size()) {
-					$$.transl = $1.transl + $3.transl;
-					
-					if ($1.type != resType) {
-						string var1 = getNextVar();
-						decls.push_back("\t" + resType + " " + var1 + ";");
-						$$.transl += "\t" + var1 + " = (" + 
-							resType + ") " + $1.label + ";\n";
-						
-						$1.label = var1;
-					}
-					
-					if ($3.type != resType) {
-						string var1 = getNextVar();
-						decls.push_back("\t" + resType + " " + var1 + ";");
-						$$.transl += "\t" + var1 + " = (" + 
-							resType + ") " + $3.label + "\n";
-						
-						$3.label = var1;
-					}
-				
-					$$.type = "bool";
-					decls.push_back("\tint " + var + ";");
-					$$.transl = $1.transl + $3.transl + 
-						"\t" + var + " = " + $1.label + " == " + $3.label + ";\n";
-					$$.label = var;
-				} else {
-					// throw compiler error
-					yyerror("Relational operation between non-bools.");
-				}
+				$$ = strat("==", $1, $3);
 			}
 			| EXPR "!=" EXPR {
-				string var = getNextVar();
-				string resType = opMap[$1.type + "rel" + $3.type];
+				strategy strat = getStrategy("!=", $1.type, $3.type);
 				
-				if (resType.size()) {
-					$$.transl = $1.transl + $3.transl;
-					
-					if ($1.type != resType) {
-						string var1 = getNextVar();
-						decls.push_back("\t" + resType + " " + var1 + ";");
-						$$.transl += "\t" + var1 + " = (" + 
-							resType + ") " + $1.label + ";\n";
-						
-						$1.label = var1;
-					}
-					
-					if ($3.type != resType) {
-						string var1 = getNextVar();
-						decls.push_back("\t" + resType + " " + var1 + ";");
-						$$.transl += "\t" + var1 + " = (" + 
-							resType + ") " + $3.label + "\n";
-						
-						$3.label = var1;
-					}
-				
-					$$.type = "bool";
-					decls.push_back("\tint " + var + ";");
-					$$.transl = $1.transl + $3.transl + 
-						"\t" + var + " = " + $1.label + " != " + $3.label + ";\n";
-					$$.label = var;
-				} else {
-					// throw compiler error
-					yyerror("Relational operation between non-bools.");
-				}
+				$$ = strat("!=", $1, $3);
 			}
 			| EXPR "and" EXPR {
-				string var = getNextVar();
+				strategy strat = getStrategy("&&", $1.type, $3.type);
 				
-				if ($1.type == "bool" && $3.type == "bool") {
-					$$.type = "bool";
-					decls.push_back("\tint " + var + ";");
-					$$.transl = $1.transl + $3.transl + 
-					"\t" + var + " = " + $1.label + " && " + $3.label + ";\n";
-					$$.label = var;
-				} else {
-					// throw compiler error
-					yyerror("Logic operation between non-bool values.");
-				}
+				$$ = strat("&&", $1, $3);
 			}
 			| EXPR "or" EXPR {
-				string var = getNextVar();
+				strategy strat = getStrategy("||", $1.type, $3.type);
 				
-				if ($1.type == "bool" && $3.type == "bool") {
-					$$.type = "bool";
-					decls.push_back("\tint " + var + ";");
-					$$.transl = $1.transl + $3.transl + 
-						"\t" + var + " = " + $1.label + " || " + $3.label + ";\n";
-					$$.label = var;
-				} else {
-					// throw compiler error
-					yyerror("Logic operation between non-bool values.");
-				}
+				$$ = strat("||", $1, $3);
 			}
 			| EXPR "xor" EXPR {
 				string var[4] = {getNextVar(), getNextVar(), 
@@ -1133,6 +838,8 @@ TYPE		: TK_INT_TYPE
 
 #include "lex.yy.c"
 
+/********* util functions **********/
+
 int yyparse();
 
 int main(int argc, char* argv[]) {
@@ -1145,8 +852,9 @@ int main(int argc, char* argv[]) {
 	padraoMapFile.open("util/default.dat");
 	
 	if (opMapFile.is_open()) {
-		while (opMapFile >> type1 >> op >> type2 >> typeRes) {
+		while (opMapFile >> type1 >> op >> type2 >> typeRes >> strategyName) {
 	    	opMap[type1 + op + type2] = typeRes;
+	    	preStrategyMap[type1 + op + type2] = strategyName;
 		}
 		
 		opMapFile.close();
@@ -1164,6 +872,26 @@ int main(int argc, char* argv[]) {
 		cout << "Unable to open default values file";
 	}
 	
+	// register type generalization
+	typeMap["+"] = "arit";
+	typeMap["-"] = "arit";
+	typeMap["*"] = "arit";
+	typeMap["/"] = "arit";
+	typeMap["<"] = "rel";
+	typeMap["<="] = "rel";
+	typeMap[">"] = "rel";
+	typeMap[">="] = "rel";
+	typeMap["=="] = "rel";
+	typeMap["!="] = "rel";
+	typeMap["&&"] = "logic";
+	typeMap["||"] = "logic";
+	
+	// register strategies
+	strategyMap["simple-aritmethic"] = doSimpleAritOp;
+	strategyMap["simple-relational"] = doSimpleRelOp;
+	strategyMap["simple-logic"] = doSimpleLogicOp;
+	
+	// insert global context
 	map<string, var_info> globalContext;
 	varMap.push_back(globalContext);
 
@@ -1231,4 +959,145 @@ string getNextVar() {
 
 string getNextLabel() {
 	return "lbl" + to_string(tempLabel++);
+}
+
+strategy getStrategy(string op, string type1, string type2) {
+	string strategyName;
+	
+	do {
+		strategyName = preStrategyMap[type1 + op + type2];
+		op = typeMap[op];
+	} while (strategyName.empty() && !op.empty());
+	
+	if (!strategyMap.count(strategyName)) {
+		return fallback;
+	}
+	
+	return strategyMap[strategyName];
+}
+
+/********** strategies **********/
+
+node doSimpleAritOp(string op, node left, node right) {
+	node result;
+	string var = getNextVar();
+	string resType, tempOp = op;
+	
+	do {
+		resType = opMap[left.type + tempOp + right.type];
+		tempOp = typeMap[tempOp];
+	} while (resType.empty() && !tempOp.empty());
+	
+	if (resType.empty()) {
+		// throw compile error
+		yyerror("Arithmetic operator '" + op + "' between types " 
+		+ left.type + " and " + right.type + " is not defined.");
+	}
+	
+	result.transl = left.transl + right.transl;
+	
+	// if left needs conversion
+	if (left.type != resType) {
+		string var1 = getNextVar();
+		decls.push_back("\t" + resType + " " + var1 + ";");
+		
+		result.transl += "\t" + var1 + " = (" + 
+			resType + ") " + left.label + ";\n";
+		
+		left.label = var1;
+	}
+	
+	// if right needs conversion
+	if (right.type != resType) {
+		string var1 = getNextVar();
+		decls.push_back("\t" + resType + " " + var1 + ";");
+		
+		result.transl += "\t" + var1 + " = (" + 
+			resType + ") " + right.label + ";\n";
+		
+		right.label = var1;
+	}
+	
+	result.type = resType;
+	decls.push_back("\t" + result.type + " " + var + ";");
+	
+	result.transl += "\t" + var + " = " + 
+		left.label + " " + op + " " + right.label + ";\n";
+	result.label = var;
+	
+	return result;
+}
+
+node doSimpleRelOp(string op, node left, node right) {
+	node result;
+	string var = getNextVar();
+	string resType, tempOp = op;
+	
+	do {
+		resType = opMap[left.type + tempOp + right.type];
+		tempOp = typeMap[tempOp];
+	} while (resType.empty() && !tempOp.empty());
+	
+	if (resType.empty()) {
+		// throw compile error
+		yyerror("Relational operator '" + op + "' between types " 
+		+ left.type + " and " + right.type + " is not defined.");
+	}
+	
+	result.transl = left.transl + right.transl;
+	
+	if (left.type != resType) {
+		string var1 = getNextVar();
+		decls.push_back("\t" + resType + " " + var1 + ";");
+		result.transl += "\t" + var1 + " = (" + 
+			resType + ") " + left.label + ";\n";
+		
+		left.label = var1;
+	}
+	
+	if (right.type != resType) {
+		string var1 = getNextVar();
+		decls.push_back("\t" + resType + " " + var1 + ";");
+		result.transl += "\t" + var1 + " = (" + 
+			resType + ") " + right.label + ";\n";
+		
+		right.label = var1;
+	}
+
+	result.type = "bool";
+	decls.push_back("\tint " + var + ";");
+	result.transl += "\t" + var + " = " + 
+		left.label + " " + op + " " + right.label + ";\n";
+	result.label = var;
+	
+	return result;
+}
+
+node doSimpleLogicOp(string op, node left, node right) {
+	node result;
+	string var = getNextVar();
+	string resType, tempOp = op;
+	
+	do {
+		resType = opMap[left.type + tempOp + right.type];
+		tempOp = typeMap[tempOp];
+	} while (resType.empty() && !tempOp.empty());
+	
+	if (resType.empty()) {
+		// throw compiler error
+		yyerror("Logic operation between non-bool values.");
+	}
+	
+	result.type = "bool";
+	decls.push_back("\tint " + var + ";");
+	result.transl = left.transl + right.transl + 
+	"\t" + var + " = " + left.label + " " + op + " " + right.label + ";\n";
+	result.label = var;
+	
+	return result;
+}
+
+node fallback(string op, node left, node right) {
+	yyerror("Operation '" + op + "' between types " 
+					+ left.type + " and " + right.type + " is not defined.");
 }
