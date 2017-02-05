@@ -28,6 +28,7 @@ typedef struct var_info {
 
 typedef struct loop_info {
 	string start; // nome da label do início do bloco
+	string increment; // nome da label do início do incremento
 	string end; // nome da label do fim do bloco
 } loop_info;
 
@@ -82,7 +83,7 @@ var_info* findVar(string label);
 void insertVar(string label, var_info info);
 
 // registra um novo loop
-void pushLoop(string start, string end);
+void pushLoop();
 
 // obtém o loop atual
 loop_info* getLoop();
@@ -131,6 +132,7 @@ void yyerror(string);
 %token TK_INCR "++"
 %token TK_DECR "--"
 %token TK_BREAK "break"
+%token TK_CONT "continue"
 %token TK_ALL "all"
 
 %start S
@@ -177,7 +179,7 @@ POP_SCOPE:	{
 			};
 			
 PUSH_LOOP:	{
-				pushLoop(getNextLabel(), getNextLabel());
+				pushLoop();
 				
 				$$.transl = "";
 				$$.label = "";
@@ -232,6 +234,24 @@ LOOP_CTRL	: "break" {
 					yyerror("Break statements should be used inside a loop.");
 				}
 			}
+			| "continue" {
+				loop_info* loop = getLoop();
+				
+				if (loop != nullptr) {
+					$$.transl = "\tgoto " + loop->increment + ";\n";
+				} else {
+					yyerror("Continue statements should be used inside a loop.");
+				}
+			}
+			| "continue" "all" {
+				loop_info* loop = getOuterLoop();
+				
+				if (loop != nullptr) {
+					$$.transl = "\tgoto " + loop->increment + ";\n";
+				} else {
+					yyerror("Continue statements should be used inside a loop.");
+				}
+			}
 			;
 			
 CONTROL		: "if" EXPR TK_BSTART BLOCK {
@@ -281,7 +301,8 @@ LOOP		: "while" EXPR TK_BSTART BLOCK {
 					
 					decls.push_back("\tint " + var + ";");
 					
-					$$.transl = loop->start + ":" + $2.transl
+					$$.transl = loop->start + ":\n" 
+						+ loop->increment + ":" + $2.transl
 						+ "\t" + var + " = !" + $2.label + ";\n" +
 						"\tif (" + var + ") goto " + loop->end + ";\n" +
 						$4.transl +
@@ -295,7 +316,8 @@ LOOP		: "while" EXPR TK_BSTART BLOCK {
 				if ($4.type == "bool") {
 					loop_info* loop = getLoop();
 					
-					$$.transl = loop->start + ":" + $2.transl
+					$$.transl = loop->start + ":\n" 
+						+ loop->increment + ":" + $2.transl
 						+ $4.transl + "\tif (" 
 						+ $4.label + ") goto " + loop->start + ";\n"
 						+ loop->end + ":\n";
@@ -314,7 +336,7 @@ LOOP		: "while" EXPR TK_BSTART BLOCK {
 					$$.transl = $2.transl + loop->start + ":" + $4.transl + 
 						"\t" + var + " = !" + $4.label + ";\n" +
 						"\tif (" + var + ") goto " + loop->end + ";\n" +
-						$8.transl + $6.transl +
+						$8.transl + loop->increment + ":" + $6.transl +
 						"\tgoto " + loop->start + ";\n" + 
 						loop->end + ":\n";
 				} else {
@@ -928,8 +950,8 @@ void popContext() {
 	return varMap.pop_back();
 }
 
-void pushLoop(string start, string end) {
-	loop_info newLoop = {start, end};
+void pushLoop() {
+	loop_info newLoop = {getNextLabel(), getNextLabel(), getNextLabel()};
 	loopMap.push_back(newLoop);
 }
 
