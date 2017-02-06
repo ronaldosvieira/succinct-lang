@@ -106,8 +106,10 @@ node doSimpleAritOp(string op, node left, node right);
 node doSimpleRelOp(string op, node left, node right);
 node doSimpleLogicOp(string op, node left, node right);
 node doStringConcat(string op, node left, node right);
+node doSimpleAttrib(string op, node left, node right);
+node doStringAttrib(string op, node left, node right);
 node fallback(string op, node left, node right);
-
+  
 int yylex(void);
 void yyerror(string);
 %}
@@ -404,44 +406,9 @@ DECLARATION : TYPE TK_ID {
 			;
 	
 ATTRIBUTION	: TK_ID '=' EXPR {
-				var_info* info = findVar($1.label);
+				strategy strat = getStrategy("=", $1.type, $3.type);
 				
-				if (info != nullptr) {
-					if (!info->isMutable) {
-						yyerror("Assignment on constant variable " + $1.label +  ".");
-					}
-					
-					// se tipo da expr for igual a do id
-					if (info->type == $3.type) {
-						string label = $3.label;
-						
-						if ($3.type == "string") label = "strdup(" + label + ")";
-						
-						$$.type = $3.type;
-						$$.transl = $3.transl + "\t" + info->name + " = " + label + ";\n";
-						$$.label = $3.label;
-					} else {
-						string var = getNextVar();
-						string resType = opMap[info->type + "=" + $3.type];
-						
-						// se conversão é permitida
-						if (resType.size()) {
-							decls.push_back("\t" + info->type + " " + var + ";");
-							$$.transl = $3.transl + "\t" + 
-								var + " = (" + info->type + ") " + $3.label + ";\n\t" +
-								info->name + " = " + var + ";\n";
-							$$.type = info->type;
-							$$.label = var;
-						} else {
-							// throw compile error
-							yyerror("Variable assignment with incompatible types " 
-								+ info->type + " and " + $3.type + ".");
-						}
-					}
-				} else {
-					// throw compile error
-					yyerror("Variable " + $1.label + " not declared.");
-				}
+				$$ = strat("=", $1, $3);
 			}
 			;
 			
@@ -932,6 +899,8 @@ int main(int argc, char* argv[]) {
 	strategyMap["simple-relational"] = doSimpleRelOp;
 	strategyMap["simple-logic"] = doSimpleLogicOp;
 	strategyMap["string-concat"] = doStringConcat;
+	strategyMap["simple-attrib"] = doSimpleAttrib;
+	strategyMap["string-attrib"] = doStringAttrib;
 	
 	// insert global context
 	map<string, var_info> globalContext;
@@ -1160,6 +1129,100 @@ node doStringConcat(string op, node left, node right) {
 		" * sizeof(char));\n\tstrcpy(" + var + ", " + left.label + 
 		");\n\tstrcat(" + var + ", " + right.label + ");\n";
 	result.label = var;
+	
+	return result;
+}
+
+node doSimpleAttrib(string op, node left, node right) {
+	node result;
+	var_info* info = findVar(left.label);
+	
+	if (info == nullptr) {
+		// throw compile error
+		yyerror("Variable " + left.label + " not declared.");
+	}
+	
+	if (!info->isMutable) {
+		yyerror("Assignment on constant variable " 
+			+ left.label +  ".");
+	}
+	
+	// se tipo da expr for igual a do id
+	if (info->type == right.type) {
+		string label = right.label;
+		
+		result.type = right.type;
+		result.transl = right.transl + "\t" + info->name 
+			+ " = " + label + ";\n";
+		result.label = right.label;
+	} else {
+		string var = getNextVar();
+		string resType = opMap[info->type + "=" + right.type];
+		
+		// se conversão é permitida
+		if (resType.size()) {
+			decls.push_back("\t" + info->type + " " + var + ";");
+			
+			result.transl = right.transl + "\t" + 
+				var + " = (" + info->type + ") " + 
+				right.label + ";\n\t" + info->name + 
+				" = " + var + ";\n";
+			result.type = info->type;
+			result.label = var;
+		} else {
+			// throw compile error
+			yyerror("Variable assignment with incompatible types " 
+				+ info->type + " and " + right.type + ".");
+		}
+	}
+	
+	return result;
+}
+
+node doStringAttrib(string op, node left, node right) {
+	node result;
+	var_info* info = findVar(left.label);
+	
+	if (info == nullptr) {
+		// throw compile error
+		yyerror("Variable " + left.label + " not declared.");
+	}
+	
+	if (!info->isMutable) {
+		yyerror("Assignment on constant variable " 
+			+ left.label +  ".");
+	}
+	
+	// se tipo da expr for igual a do id
+	if (info->type == right.type) {
+		string label = "strdup(" + right.label + ")";
+		
+		result.type = right.type;
+		result.size = right.size;
+		result.transl = right.transl + "\t" + info->name 
+			+ " = " + label + ";\n";
+		result.label = right.label;
+	} else {
+		string var = getNextVar();
+		string resType = opMap[info->type + "=" + right.type];
+		
+		// se conversão é permitida
+		if (resType.size()) {
+			decls.push_back("\t" + info->type + " " + var + ";");
+			
+			result.transl = right.transl + "\t" + 
+				var + " = (" + info->type + ") " + 
+				right.label + ";\n\t" + info->name + 
+				" = " + var + ";\n";
+			result.type = info->type;
+			result.size = right.size;
+			result.label = var;
+		} else {
+			// throw compile error
+			yyerror("Variable assignment with incompatible types " 
+				+ info->type + " and " + right.type + ".");
+		}
+	}
 	
 	return result;
 }

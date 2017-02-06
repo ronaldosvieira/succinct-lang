@@ -94,6 +94,8 @@ string t2 = "aaa";
 
 string t3 = 
     "aaa" + "b";
+    
+t1 = t1 + t2;
 
 write t1 endl;
 write t2 endl;
