@@ -44,6 +44,9 @@ int tempLabel = 0;
 // declarações de variáveis
 vector<string> decls;
 
+// desalocações de variáveis
+vector<string> desacs;
+
 // pilha de mapas de variável
 vector<map<string, var_info>> varMap;
 
@@ -162,9 +165,13 @@ S 			: STATEMENTS {
 					cout << decl << endl;
 				}
 				
-				cout << "\n" << 
-				$1.transl << 
-				"\treturn 0;\n}" << endl;
+				cout << endl << $1.transl; 
+				
+				for (string desac : desacs) {
+					cout << "\tfree(" << desac << ");" << endl;
+				}
+				
+				cout << endl << "\treturn 0;\n}" << endl;
 			};
 			
 PUSH_SCOPE: {
@@ -840,6 +847,7 @@ VALUE_OR_ID	: TK_NUM {
 				string var = getNextVar();
 				
 				decls.push_back("\tchar* " + var + ";");
+				
 				$$.transl = "\t" + var + " = (char*) \"" + $1.label + "\";\n";
 				$$.size = $1.label.size();
 				$$.label = var;
@@ -1145,6 +1153,7 @@ node doStringConcat(string op, node left, node right) {
 	
 	result.type = resType;
 	decls.push_back("\tchar* " + var + ";");
+	desacs.push_back(var);	
 	
 	result.transl += 
 		"\t" + var + " = (char*) malloc(" + to_string(left.size + right.size) + 
@@ -1157,5 +1166,6 @@ node doStringConcat(string op, node left, node right) {
 
 node fallback(string op, node left, node right) {
 	yyerror("Operation '" + op + "' between types " 
-					+ left.type + " and " + right.type + " is not defined.");
+		+ left.type + " and " + right.type 
+		+ " is not defined.");
 }
