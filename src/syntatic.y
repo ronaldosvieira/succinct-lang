@@ -25,6 +25,7 @@ typedef struct var_info {
 	string type; // tipo da variável usada no cód. intermediário (ex: "int")
 	string name; // nome da variável usada no cód. intermediário (ex: "t0")
 	bool isMutable; // se variável é constante ou não
+	int size; // tamanho da variável; usado somente com strings
 } var_info;
 
 typedef struct loop_info {
@@ -388,7 +389,7 @@ DECLARATION : TYPE TK_ID {
 				if (info == nullptr) {
 					string var = getNextVar();
 					
-					insertVar($2.label, {$1.transl, var, true});
+					insertVar($2.label, {$1.transl, var, true, 0});
 					
 					decls.push_back("\t" + $1.transl + " " + var + ";");
 					$$.transl = "\t" + var + " = " + 
@@ -599,7 +600,8 @@ DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
 					if ($4.type == $1.transl) {
 						$$.transl = $4.transl;
 						
-						insertVar($2.label, {$1.transl, $4.label, true});
+						insertVar($2.label, 
+							{$1.transl, $4.label, true, $4.size});
 					} else {
 						string var = getNextVar();
 						string resType = opMap[$1.transl + "=" + $4.type];
@@ -612,7 +614,7 @@ DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
 								var + " = (" + $1.transl + ") " + $4.label + 
 								";\n\t";
 						
-							insertVar($2.label, {$1.transl, var, true});	
+							insertVar($2.label, {$1.transl, var, true, $4.size});	
 						} else {
 							// throw compile error
 							yyerror("Variable assignment with incompatible types " 
@@ -631,7 +633,8 @@ DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
 					if ($5.type == $2.transl) {
 						$$.transl = $5.transl;
 						
-						insertVar($3.label, {$2.transl, $5.label, false});
+						insertVar($3.label, 
+							{$2.transl, $5.label, false, $5.size});
 					}  else {
 						string var = getNextVar();
 						string resType = opMap[$2.transl + "=" + $5.type];
@@ -644,7 +647,8 @@ DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
 								var + " = (" + $2.transl + ") " + $5.label + 
 								";\n\t";
 						
-							insertVar($3.label, {$2.transl, var, true});	
+							insertVar($3.label, 
+								{$2.transl, var, false, $5.size});	
 						} else {
 							// throw compile error
 							yyerror("Variable assignment with incompatible types " 
@@ -825,6 +829,7 @@ VALUE_OR_ID	: TK_NUM {
 				if (info != nullptr && info->name.size()) {
 					$$.type = info->type;
 					$$.label = info->name;
+					$$.size = info->size;
 					$$.transl = "";
 				} else {
 					// throw compile error
@@ -1122,13 +1127,15 @@ node doStringConcat(string op, node left, node right) {
 	
 	result.type = resType;
 	decls.push_back("\tchar* " + var + ";");
-	desacs.push_back(var);	
+	desacs.push_back(var);
 	
 	result.transl += 
-		"\t" + var + " = (char*) malloc(" + to_string(left.size + right.size) + 
+		"\t" + var + " = (char*) malloc(" + 
+		to_string(left.size + right.size) + 
 		" * sizeof(char));\n\tstrcpy(" + var + ", " + left.label + 
 		");\n\tstrcat(" + var + ", " + right.label + ");\n";
 	result.label = var;
+	result.size = left.size + right.size;
 	
 	return result;
 }
