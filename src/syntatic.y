@@ -155,6 +155,7 @@ S 			: STATEMENTS {
 				"#include <iostream>" << endl <<
 				"#include <string.h>" << endl <<
 				"#include <stdio.h>" << endl <<
+				"#include <stdlib.h>" << endl << endl <<
 				"int main(void) {" << endl;
 				
 				for (string decl : decls) {
