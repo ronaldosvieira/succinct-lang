@@ -112,3 +112,5 @@ if z == 1: {
 } else: {
 	write "z -> ?" endl;
 }
+
+string aaaa;
