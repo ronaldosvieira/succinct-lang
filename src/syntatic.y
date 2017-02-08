@@ -641,34 +641,34 @@ DECREMENT	: "--" TK_ID {
 DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
 				var_info* info = findVar($2.label);
 				
-				if (info == nullptr) {
-					if ($4.type == $1.transl) {
-						$$.transl = $4.transl;
-						
-						insertVar($2.label, 
-							{$1.transl, $4.label, true, $4.size});
-					} else {
-						string var = getNextVar();
-						string resType = opMap[$1.transl + "=" + $4.type];
-						
-						// se conversão é permitida
-						if (resType.size()) {
-							decls.push_back("\t" + $1.transl + " " + var + ";");
-							
-							$$.transl = $4.transl + "\t" + 
-								var + " = (" + $1.transl + ") " + $4.label + 
-								";\n\t";
-						
-							insertVar($2.label, {$1.transl, var, true, $4.size});	
-						} else {
-							// throw compile error
-							yyerror("Variable assignment with incompatible types " 
-								+ info->type + " and " + $3.type + ".");
-						}
-					}
-				} else {
+				if (info != nullptr) {
 					// throw compile error
 					yyerror("Variable " + $2.label + " redeclared.");
+				}
+				
+				if ($4.type == $1.transl) {
+					$$.transl = $4.transl;
+					
+					insertVar($2.label, 
+						{$1.transl, $4.label, true, $4.size});
+				} else {
+					string var = getNextVar();
+					string resType = opMap[$1.transl + "=" + $4.type];
+					
+					// se conversão é permitida
+					if (resType.size()) {
+						decls.push_back("\t" + $1.transl + " " + var + ";");
+						
+						$$.transl = $4.transl + "\t" + 
+							var + " = (" + $1.transl + ") " + $4.label + 
+							";\n\t";
+					
+						insertVar($2.label, {$1.transl, var, true, $4.size});	
+					} else {
+						// throw compile error
+						yyerror("Variable assignment with incompatible types " 
+							+ $1.transl + " and " + $4.type + ".");
+					}
 				}
 			}
 			| "const" TYPE TK_ID '=' EXPR {
@@ -697,7 +697,7 @@ DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
 						} else {
 							// throw compile error
 							yyerror("Variable assignment with incompatible types " 
-								+ info->type + " and " + $3.type + ".");
+								+ $2.transl + " and " + $5.type + ".");
 						}
 					}
 				} else {
