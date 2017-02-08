@@ -100,3 +100,15 @@ t1 = t1 + t2;
 write t1 endl;
 write t2 endl;
 write t3 endl;
+
+int z = 1;
+
+if z == 1: {
+	write "z -> 1" endl;
+} elif z == 2: {
+	write "z -> 2" endl;
+} elif z == 3: {
+	write "z -> 3" endl;
+} else: {
+	write "z -> ?" endl;
+}

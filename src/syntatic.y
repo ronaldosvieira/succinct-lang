@@ -121,6 +121,7 @@ void yyerror(string);
 %token TK_FOR "for"
 %token TK_DO "do"
 %token TK_ELSE "else"
+%token TK_ELIF "elif"
 %token TK_AS "as"
 %token TK_WRITE "write"
 %token TK_CONST "const"
@@ -284,27 +285,60 @@ CONTROL		: "if" EXPR TK_BSTART BLOCK {
 					yyerror("Non-bool expression on if condition.");
 				}
 			}
-			| "if" EXPR TK_BSTART BLOCK "else" TK_BSTART BLOCK {
-				if ($2.type == "bool") {
-					string var = getNextVar();
-					string endif = getNextLabel();
-					string endelse = getNextLabel();
-					
-					decls.push_back("\tint " + var + ";");
-					
-					$$.transl = $2.transl + 
-						"\t" + var + " = !" + $2.label + ";\n" +
-						"\tif (" + var + ") goto " + endif + ";\n" +
-						$4.transl +
-						"\tgoto " + endelse + ";\n" +
-						endif + ":" + $7.transl +
-						endelse + ":";
-				} else {
+			| "if" EXPR TK_BSTART BLOCK IF_PREDS {
+				if ($2.type != "bool") {
 					// throw compile error
 					yyerror("Non-bool expression on if condition.");
 				}
+				
+				string var = getNextVar();
+				string endif = getNextLabel();
+				
+				decls.push_back("\tint " + var + ";");
+				
+				$$.transl = $2.transl + 
+					"\t" + var + " = !" + $2.label + ";\n" +
+					"\tif (" + var + ") goto " + endif + ";\n" +
+					$4.transl +
+					"\tgoto " + $5.label + ";\n" +
+					endif + ":" + $5.transl;
 			}
 			| PUSH_LOOP LOOP POP_LOOP {$$.transl = $2.transl;};
+			;
+			
+IF_PREDS	: "elif" EXPR TK_BSTART BLOCK {
+				string var = getNextVar();
+				string endelif = getNextLabel();
+				
+				decls.push_back("\tint " + var + ";");
+				
+				$$.transl = $2.transl + 
+					"\t" + var + " = !" + $2.label + ";\n" +
+					"\tif (" + var + ") goto " + endelif + ";\n" +
+					$4.transl +
+					endelif + ":";
+				$$.label = endelif;
+			}
+			| "elif" EXPR TK_BSTART BLOCK IF_PREDS {
+				string var = getNextVar();
+				string endelif = getNextLabel();
+				
+				decls.push_back("\tint " + var + ";");
+				
+				$$.transl = $2.transl + 
+					"\t" + var + " = !" + $2.label + ";\n" +
+					"\tif (" + var + ") goto " + endelif + ";\n" +
+					$4.transl +
+					"\tgoto " + $5.label + ";\n" +
+					endelif + ":" + $5.transl;
+				$$.label = $5.label;
+			}
+			| "else" TK_BSTART BLOCK {
+				string endelse = getNextLabel();
+				
+				$$.transl = $3.transl + endelse + ":";
+				$$.label = endelse;
+			}
 			;
 			
 LOOP		: "while" EXPR TK_BSTART BLOCK {

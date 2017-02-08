@@ -51,6 +51,7 @@ COMML	    "//"[^\n]*
 "main"		{ return TK_MAIN; }
 
 "if"        { return TK_IF; }
+"elif"      { return TK_ELIF; }
 "else"      { return TK_ELSE; }
 "while"     { return TK_WHILE; }
 "for"       { return TK_FOR; }
