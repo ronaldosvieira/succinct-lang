@@ -28,10 +28,10 @@ INDENT		\s{4}|\t
 /*Alterei o regex do espaço para qualquer quantidade de espaço*/
 SPACE		\s{1,3}
 
-INT     	{DIGIT}+
-FLOAT   	{DIGIT}+(\.{DIGIT}*)?([eE][\-\+]?{DIGIT}+)?[fF]
-DOUBLE		{DIGIT}+(\.{DIGIT}*)?([eE][\-\+]?{DIGIT}+)?[dD]?
-LONG		{DIGIT}+[lL]
+INT     	-?{DIGIT}+
+FLOAT   	-?{DIGIT}+(\.{DIGIT}*)?([eE][\-\+]?{DIGIT}+)?[fF]
+DOUBLE		-?{DIGIT}+(\.{DIGIT}*)?([eE][\-\+]?{DIGIT}+)?[dD]?
+LONG		-?{DIGIT}+[lL]
 CHAR		\'[^\'\n]\'
 STRING	    \"[^\"]*\"
 BOOL        "true"|"false"
