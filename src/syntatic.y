@@ -446,11 +446,55 @@ DECLARATION : TYPE TK_ID {
 					yyerror("Variable " + $2.label + " redeclared.");
 				}
 			}
+			| TYPE TK_ID DIMENSION {
+
+				var_info* info = findVar($2.label);
+				
+				if (info == nullptr) {
+				 	string var = getNextVar();
+					
+				 	insertVar($2.label, {$1.transl, var, false, $3.size});
+					
+				 	decls.push_back($3.transl + "\t" + $1.transl + " " + var + "[" + $3.label + "];");
+					$$.transl = "" ;
+					// TODO tratar string
+
+					$$.label = var;
+					$$.type = $1.transl;
+				} else {
+					// throw compile error
+					yyerror("Variable " + $2.label + " redeclared.");
+				}
+				
+				// $$.transl = $3.transl;
+			}
 			| "const" TYPE TK_ID {
 				yyerror("Constant variables must be given a value at its declaration.");
 			}
 			;
-	
+
+
+DIMENSION:	DIMENSION '[' EXPR ']'
+			{
+				if($3.type != "int") {
+					cout << "Erro na linha: " << "X" << ". Esperava um valor do tipo \"int\" para definir o tamanho de um vetor.";
+				}
+
+				string var = getNextVar();
+				decls.push_back("\tint " + var + ";");
+
+				$$.transl = $1.transl + $3.transl + "\n\t" + var + " = " + $1.label + " * " + $3.label + ";\n";
+				$$.label = var;
+			}
+			| '[' EXPR ']'
+			{
+				if($2.type != "int") {
+					cout << "Erro na linha: " << "X" << ". Esperava um valor do tipo \"int\" para definir o tamanho de um vetor.";
+				}
+				$$.transl = $2.transl;
+				$$.label = $2.label;
+			}
+
 ATTRIBUTION	: TK_ID '=' EXPR {
 				strategy strat = getStrategy("=", $1.type, $3.type);
 				

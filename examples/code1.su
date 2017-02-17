@@ -1,116 +1,163 @@
-1.0 * 2 - 3;
-1.0 * (2 - 3);
-4 + 5.0;
-float x = 3.0f;
-x + 1;
-bool b = false;
-char k = 'c';
+//1.0 * 2 - 3;
+//1.0 * (2 - 3);
+//4 + 5.0;
+//float x = 3.0f;
+//x + 1;
+//bool b = false;
+//char k = 'c';
+//
+//k = 'z';
+//
+//float a = 1.0f;
+//a = 2.0;
+//float i;
+//
+//true and true or false;
+//true && true || false;
+//false or true;
+//false xor true;
+//4 <= 2.0;
+//4 lte 2;
+//
+//int l = 1.0f as int;
+//int j = 2;
+//2.0f as double;
+//
+//3 as float / 2;
+//3 / 2 as float;
+//(3 / 2) as float;
+//
+//write j as float;
+//write b;
+//write true;
+//
+//b = not not b;
+//b = !!b;
+//
+//if b: {
+//	1 + 1;
+//} else: {
+//	2 + 2;
+//}
+//
+//while b: {}
+//
+//for int kk = 0; 
+//	kk < 5; 
+//	kk = kk + 1: {
+//	write kk endl;
+//}
+//
+//do {
+//	int scope = 1;
+//	
+//	write scope endl;
+//} while false;
+//
+//// write scope; (error)
+//
+//const int aaa = 2;
+//
+//// aaa = 3; (error)
+//
+//float n = 0;
+//
+//n = 1.0;
+//
+//1 + ++n;
+//2 + --n;
+//
+//// 3 + n++;
+//// 4 + n--;
+//
+//int p = 0;
+//
+//while p < 5: {
+//	write p endl;
+//	
+//	int pp = 0;
+//	
+//	while pp < 5: {
+//		write pp endl;
+//		
+//		break all;
+//		
+//		pp = pp + 1;
+//	}
+//	
+//	p = p + 1;
+//}
+//
+//string t1 = "kkk";
+//
+//string t2 = "aaa";
+//
+//string t3 = 
+//    "aaa" + "b";
+//    
+//t1 = t1 + t2;
+//
+//write t1 endl;
+//write t2 endl;
+//write t3 endl;
+//
+//int z = 1;
+//
+//if z == 1: {
+//	write "z -> 1" endl;
+//} elif z == 2: {
+//	write "z -> 2" endl;
+//} elif z == 3: {
+//	write "z -> 3" endl;
+//} else: {
+//	write "z -> ?" endl;
+//}
+//
+//string aaaa;//
 
-k = 'z';
 
-float a = 1.0f;
-a = 2.0;
-float i;
 
-true and true or false;
-true && true || false;
-false or true;
-false xor true;
-4 <= 2.0;
-4 lte 2;
 
-int l = 1.0f as int;
-int j = 2;
-2.0f as double;
 
-3 as float / 2;
-3 / 2 as float;
-(3 / 2) as float;
+int  a[5][1][4];
 
-write j as float;
-write b;
-write true;
 
-b = not not b;
-b = !!b;
 
-if b: {
-	1 + 1;
-} else: {
-	2 + 2;
-}
 
-while b: {}
 
-for int kk = 0; 
-	kk < 5; 
-	kk = kk + 1: {
-	write kk endl;
-}
 
-do {
-	int scope = 1;
-	
-	write scope endl;
-} while false;
 
-// write scope; (error)
 
-const int aaa = 2;
 
-// aaa = 3; (error)
 
-float n = 0;
 
-n = 1.0;
 
-1 + ++n;
-2 + --n;
 
-// 3 + n++;
-// 4 + n--;
 
-int p = 0;
 
-while p < 5: {
-	write p endl;
-	
-	int pp = 0;
-	
-	while pp < 5: {
-		write pp endl;
-		
-		break all;
-		
-		pp = pp + 1;
-	}
-	
-	p = p + 1;
-}
 
-string t1 = "kkk";
 
-string t2 = "aaa";
 
-string t3 = 
-    "aaa" + "b";
-    
-t1 = t1 + t2;
 
-write t1 endl;
-write t2 endl;
-write t3 endl;
 
-int z = 1;
 
-if z == 1: {
-	write "z -> 1" endl;
-} elif z == 2: {
-	write "z -> 2" endl;
-} elif z == 3: {
-	write "z -> 3" endl;
-} else: {
-	write "z -> ?" endl;
-}
 
-string aaaa;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
