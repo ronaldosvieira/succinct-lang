@@ -453,7 +453,7 @@ DECLARATION : TYPE TK_ID {
 				if (info == nullptr) {
 				 	string var = getNextVar();
 					
-				 	insertVar($2.label, {$1.transl, var, false, $3.size});
+				 	insertVar($2.label, {$1.transl, var, true, $3.size});
 					
 				 	decls.push_back($3.transl + "\t" + $1.transl + " " + var + "[" + $3.label + "];");
 					$$.transl = "" ;
@@ -477,7 +477,7 @@ DECLARATION : TYPE TK_ID {
 DIMENSION:	DIMENSION '[' EXPR ']'
 			{
 				if($3.type != "int") {
-					cout << "Erro na linha: " << "X" << ". Esperava um valor do tipo \"int\" para definir o tamanho de um vetor.";
+					yyerror("Erro na linha: X. Esperava um valor do tipo \"int\" para definir o tamanho de um vetor.");
 				}
 
 				string var = getNextVar();
@@ -486,10 +486,9 @@ DIMENSION:	DIMENSION '[' EXPR ']'
 				$$.transl = $1.transl + $3.transl + "\n\t" + var + " = " + $1.label + " * " + $3.label + ";\n";
 				$$.label = var;
 			}
-			| '[' EXPR ']'
-			{
+			| '[' EXPR ']' {
 				if($2.type != "int") {
-					cout << "Erro na linha: " << "X" << ". Esperava um valor do tipo \"int\" para definir o tamanho de um vetor.";
+					yyerror("Erro na linha: X. Esperava um valor do tipo \"int\" para definir o tamanho de um vetor.");
 				}
 				$$.transl = $2.transl;
 				$$.label = $2.label;
@@ -499,6 +498,23 @@ ATTRIBUTION	: TK_ID '=' EXPR {
 				strategy strat = getStrategy("=", $1.type, $3.type);
 				
 				$$ = strat("=", $1, $3);
+			}
+			| TK_ID DIMENSION '=' EXPR {
+				var_info* info = findVar($1.label);
+				if (info != nullptr && info->name.size()) {
+					strategy strat = getStrategy("=", $1.type, $4.type);
+					strat("=", $1, $4);
+
+					$$.type = info->type;
+					$$.size = info->size;
+
+					$$.transl = $4.transl + $2.transl + "\n\t" + info->name + "[" + $2.label + "]" " = " + $4.label + ";";
+				} else {
+					// throw compile error
+					yyerror("Variable " + $1.label + " not declared.");
+				}
+
+				
 			}
 			;
 			
@@ -865,6 +881,22 @@ EXPR 		: EXPR '+' EXPR {
 				} else {
 					// throw compiler error
 					yyerror("Invalid cast from " + $1.type + " to " + $3.transl + ".");
+				}
+			}
+			| TK_ID DIMENSION {
+				
+				var_info* info = findVar($1.label);
+				
+				if (info != nullptr && info->name.size()) {
+					$$.type = info->type;
+					$$.label = info->name;
+					$$.size = info->size;
+
+					$$.transl = $2.transl;
+					$$.label = info->name + "[" + $2.label + "]";
+				} else {
+					// throw compile error
+					yyerror("Variable " + $1.label + " not declared.");
 				}
 			}
 			| INCR_OR_DECR
