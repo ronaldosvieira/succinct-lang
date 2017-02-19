@@ -152,7 +152,7 @@ void yyerror(string);
 %left '+' '-'
 %left '*' '/'
 %left "as"
-%nonassoc "++" "--"
+%right "++" "--" TK_ID
 
 %%
 
@@ -504,7 +504,7 @@ INCREMENT	: "++" TK_ID {
 					yyerror("Variable " + $2.label + " not declared.");
 				}
 			}
-			/*| TK_ID "++" {
+			| TK_ID "++" {
 				var_info* info = findVar($1.label);
 				
 				if (info != nullptr) {
@@ -547,7 +547,7 @@ INCREMENT	: "++" TK_ID {
 					// throw compile error
 					yyerror("Variable " + $1.label + " not declared.");
 				}
-			}*/
+			}
 			;
 			
 DECREMENT	: "--" TK_ID {
@@ -592,7 +592,7 @@ DECREMENT	: "--" TK_ID {
 					yyerror("Variable " + $2.label + " not declared.");
 				}
 			}
-			/*| TK_ID "--" {
+			| TK_ID "--" {
 				var_info* info = findVar($1.label);
 				
 				if (info != nullptr) {
@@ -635,7 +635,7 @@ DECREMENT	: "--" TK_ID {
 					// throw compile error
 					yyerror("Variable " + $1.label + " not declared.");
 				}
-			}*/
+			}
 			;
 
 DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
