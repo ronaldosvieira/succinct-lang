@@ -1,5 +1,7 @@
 %{
 #include <string>
+
+int line = 1;
 %}
 
 /*
@@ -144,10 +146,10 @@ COMML	    "//"[^\n]*
     return TK_ID;
 }
 
-{BREAK}		{}
+{BREAK}		{++line;}
 
 {COMML}     {}
 
-.			{ *yytext; }
+.			{*yytext;}
 
 %%

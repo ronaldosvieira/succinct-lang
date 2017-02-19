@@ -962,7 +962,7 @@ int main(int argc, char* argv[]) {
 }
 
 void yyerror(string MSG) {
-	cout << "Error: " << MSG << endl;
+	cout << "Error on line " << line << ": " << MSG << endl;
 	exit (0);
 }
 
