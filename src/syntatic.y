@@ -84,6 +84,9 @@ void popContext();
 // procura uma variável na pilha de contextos
 var_info* findVar(string label);
 
+// procura uma variável no primeiro contexto da pilha de contextos
+var_info* findVarOnTop(string label);
+
 // insere uma nova variável no contexto atual
 void insertVar(string label, var_info info);
 
@@ -429,7 +432,7 @@ DECL_OR_ATTR: DECLARATION
 			;
 			
 DECLARATION : TYPE TK_ID {
-				var_info* info = findVar($2.label);
+				var_info* info = findVarOnTop($2.label);
 				
 				if (info == nullptr) {
 					string var = getNextVar();
@@ -447,17 +450,16 @@ DECLARATION : TYPE TK_ID {
 				}
 			}
 			| TYPE TK_ID DIMENSION {
-
-				var_info* info = findVar($2.label);
+				var_info* info = findVarOnTop($2.label);
 				
 				if (info == nullptr) {
 				 	string var = getNextVar();
 					
-				 	insertVar($2.label, {$1.transl, var, false, $3.size});
+				 	insertVar($2.label, {$1.transl, var, true, 0});
 					
-				 	decls.push_back($3.transl + "\t" + $1.transl + " " + var + "[" + $3.label + "];");
-					$$.transl = "" ;
-					// TODO tratar string
+				 	decls.push_back($3.transl + "\t" + $1.transl + " " 
+				 		+ var + "[" + $3.label + "];");
+					$$.transl = "";
 
 					$$.label = var;
 					$$.type = $1.transl;
@@ -465,8 +467,6 @@ DECLARATION : TYPE TK_ID {
 					// throw compile error
 					yyerror("Variable " + $2.label + " redeclared.");
 				}
-				
-				// $$.transl = $3.transl;
 			}
 			| "const" TYPE TK_ID {
 				yyerror("Constant variables must be given a value at its declaration.");
@@ -474,23 +474,25 @@ DECLARATION : TYPE TK_ID {
 			;
 
 
-DIMENSION:	DIMENSION '[' EXPR ']'
-			{
-				if($3.type != "int") {
-					cout << "Erro na linha: " << "X" << ". Esperava um valor do tipo \"int\" para definir o tamanho de um vetor.";
+DIMENSION:	DIMENSION '[' EXPR ']' {
+				if ($3.type != "int") {
+					cout << "List size must be defined by integers, "
+						<< $3.type << " given.";
 				}
 
 				string var = getNextVar();
 				decls.push_back("\tint " + var + ";");
 
-				$$.transl = $1.transl + $3.transl + "\n\t" + var + " = " + $1.label + " * " + $3.label + ";\n";
+				$$.transl = $1.transl + $3.transl + "\n\t" + var + " = " 
+					+ $1.label + " * " + $3.label + ";\n";
 				$$.label = var;
 			}
-			| '[' EXPR ']'
-			{
-				if($2.type != "int") {
-					cout << "Erro na linha: " << "X" << ". Esperava um valor do tipo \"int\" para definir o tamanho de um vetor.";
+			| '[' EXPR ']' {
+				if ($2.type != "int") {
+					cout << "List size must be defined by integers, "
+						<< $3.type << " given.";
 				}
+				
 				$$.transl = $2.transl;
 				$$.label = $2.label;
 			}
@@ -683,7 +685,7 @@ DECREMENT	: "--" TK_ID {
 			;
 
 DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
-				var_info* info = findVar($2.label);
+				var_info* info = findVarOnTop($2.label);
 				
 				if (info != nullptr) {
 					// throw compile error
@@ -716,7 +718,7 @@ DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
 				}
 			}
 			| "const" TYPE TK_ID '=' EXPR {
-				var_info* info = findVar($3.label);
+				var_info* info = findVarOnTop($3.label);
 				
 				if (info == nullptr) {
 					if ($5.type == $2.transl) {
@@ -1015,6 +1017,14 @@ var_info* findVar(string label) {
 		if (varMap[i].count(label)) {
 			return &varMap[i][label];
 		}
+	}
+	
+	return nullptr;
+}
+
+var_info* findVarOnTop(string label) {
+	if (varMap[varMap.size() - 1].count(label)) {
+		return &varMap[varMap.size() - 1][label];
 	}
 	
 	return nullptr;
