@@ -41,6 +41,14 @@ ifstream opMapFile, padraoMapFile;
 
 int tempGen = 0;
 int tempLabel = 0;
+bool insert_list = false;
+int count_vector = 0;
+
+// mapa de labels de vetores
+map<string, string> vectorMap;
+
+// lista de indices de acesso a vetores
+vector<string> index_temp;
 
 // declarações de variáveis
 vector<string> decls;
@@ -448,25 +456,47 @@ DECLARATION : TYPE TK_ID {
 			}
 			| TYPE TK_ID DIMENSION {
 
+				insert_list = true;
+
 				var_info* info = findVar($2.label);
 				
 				if (info == nullptr) {
 				 	string var = getNextVar();
-					
 				 	insertVar($2.label, {$1.transl, var, true, $3.size});
+				 	// decls.push_back($3.transl + "\t" + $1.transl + " " + var + "[" + $3.label + "];");
 					
-				 	decls.push_back($3.transl + "\t" + $1.transl + " " + var + "[" + $3.label + "];");
-					$$.transl = "" ;
+					vectorMap[var] = "vec_" + to_string(count_vector);
+					count_vector++;
+
+					//======== Insere os dados para o mapeamento =========
+				 	string init_list = "\n\tnode *" + vectorMap[var] + 
+				 			";\n\t" + vectorMap[var] + 
+				 			" = (node *) malloc(sizeof(node));\n\tinicia(" + 
+				 			vectorMap[var] + ");\n\tif(!" + 
+				 			vectorMap[var] + 
+				 			") std::cout << \"Sem memoria disponivel!\\n\";";
+				 	
+				 	for (int i = 0; i < index_temp.size(); ++i)
+					{
+						init_list += "\n\tinsereFim(" + vectorMap[var] + 
+								", " + index_temp[i] + ");";
+					}
+
+					index_temp.clear();
+				 	
+					$$.transl = "\n" + $3.transl + "\n\t" + init_list + 
+							"\n\n\t" + $1.transl + " " + var +
+							"[" + $3.label + "];\n";
+					//====================================================
+					
 					// TODO tratar string
 
 					$$.label = var;
 					$$.type = $1.transl;
 				} else {
-					// throw compile error
 					yyerror("Variable " + $2.label + " redeclared.");
 				}
 				
-				// $$.transl = $3.transl;
 			}
 			| "const" TYPE TK_ID {
 				yyerror("Constant variables must be given a value at its declaration.");
@@ -482,7 +512,7 @@ DIMENSION:	DIMENSION '[' EXPR ']'
 
 				string var = getNextVar();
 				decls.push_back("\tint " + var + ";");
-
+				index_temp.push_back($3.label);
 				$$.transl = $1.transl + $3.transl + "\n\t" + var + " = " + $1.label + " * " + $3.label + ";\n";
 				$$.label = var;
 			}
@@ -490,19 +520,43 @@ DIMENSION:	DIMENSION '[' EXPR ']'
 				if($2.type != "int") {
 					yyerror("Erro na linha: X. Esperava um valor do tipo \"int\" para definir o tamanho de um vetor.");
 				}
+				index_temp.push_back($2.label);
 				$$.transl = $2.transl;
 				$$.label = $2.label;
 			}
+
+VECTOR_INDEX:	VECTOR_INDEX '[' EXPR ']'
+			{
+				if($3.type != "int") {
+					yyerror("Erro na linha: X. Esperava um valor do tipo \"int\" para definir o tamanho de um vetor.");
+				}
+
+				// string var = gera_variavel_temporaria("int");
+				// indices_temporarios.push_back($3.label);
+				// $$.traducao = $1.traducao + $3.traducao + ";\n";
+			}
+			| '[' EXPR ']' {
+				if($2.type != "int") {
+					yyerror("Erro na linha: X. Esperava um valor do tipo \"int\" para definir o tamanho de um vetor.");
+				}
+				// indices_temporarios.push_back($2.label);
+				// $$.traducao = $2.traducao;
+				index_temp.push_back($2.label);
+				$$.transl = $2.transl;
+				$$.label = $2.label;
+			}
+
 
 ATTRIBUTION	: TK_ID '=' EXPR {
 				strategy strat = getStrategy("=", $1.type, $3.type);
 				
 				$$ = strat("=", $1, $3);
 			}
-			| TK_ID DIMENSION '=' EXPR {
+			| TK_ID VECTOR_INDEX '=' EXPR {
 				var_info* info = findVar($1.label);
+
 				if (info != nullptr && info->name.size()) {
-					strategy strat = getStrategy("=", $1.type, $4.type);
+					strategy strat = getStrategy("=", info->type, $4.type);
 					strat("=", $1, $4);
 
 					$$.type = info->type;
@@ -513,8 +567,6 @@ ATTRIBUTION	: TK_ID '=' EXPR {
 					// throw compile error
 					yyerror("Variable " + $1.label + " not declared.");
 				}
-
-				
 			}
 			;
 			
@@ -883,7 +935,7 @@ EXPR 		: EXPR '+' EXPR {
 					yyerror("Invalid cast from " + $1.type + " to " + $3.transl + ".");
 				}
 			}
-			| TK_ID DIMENSION {
+			| TK_ID VECTOR_INDEX {
 				
 				var_info* info = findVar($1.label);
 				
