@@ -752,6 +752,19 @@ DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
 				}
 			}
 			;
+			
+FUNC_DEF	: "func" FUNC_PARAMS TK_BSTART BLOCK {/* todo */}
+			;
+			
+FUNC_PARAMS	: TYPE TK_ID ',' FUNC_PARAMS {/* todo */}
+			| TYPE TK_ID {/* todo */}
+			;
+			
+FUNC_APPL	: TK_ID '(' FUNC_ARGS ')' {/* todo */}
+			;
+			
+FUNC_ARGS	: EXPR ',' FUNC_ARGS {/* todo */}
+			;
 
 EXPR 		: EXPR '+' EXPR {
 				strategy strat = getStrategy("+", $1.type, $3.type);
@@ -870,6 +883,7 @@ EXPR 		: EXPR '+' EXPR {
 				}
 			}
 			| INCR_OR_DECR
+			| FUNC_DEF
 			| VALUE_OR_ID
 			;
 			
@@ -927,6 +941,7 @@ VALUE_OR_ID	: TK_NUM {
 					yyerror("Variable " + $1.label + " not declared.");
 				}
 			}
+			| FUNC_APPL {/* todo */}
 			;
 			
 TYPE		: TK_INT_TYPE
