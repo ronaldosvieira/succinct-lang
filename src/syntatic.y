@@ -7,6 +7,7 @@
 #include <vector>
 #include <algorithm>
 #include <functional>
+#include <regex>
 
 #define YYSTYPE attributes
 
@@ -190,6 +191,11 @@ S 			: STATEMENTS {
 				for (string desac : desacs) {
 					cout << "\tfree(" << desac << ");" << endl;
 				}
+
+				for (std::map<string, string>::iterator it=vectorMap.begin(); it!=vectorMap.end(); ++it)
+					if (regex_match(it->second, regex("(vec_)[0-9]*")) )
+						cout << "\tfree(" << it->second << ");" << endl;
+                        
 				
 				cout << endl << "\treturn 0;\n}" << endl;
 			};
