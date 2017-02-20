@@ -110,6 +110,9 @@ void popLoop();
 // obtém a estratégia para os tipos e operação especificadas
 strategy getStrategy(string op, string type1, string type2);
 
+// insere a lista encadeada para mapeamento de indices no código gerado
+string insertListOfFile();
+
 /* strategy declarations */
 node doSimpleAritOp(string op, node left, node right);
 node doSimpleRelOp(string op, node left, node right);
@@ -170,9 +173,14 @@ S 			: STATEMENTS {
 				"#include <iostream>" << endl <<
 				"#include <string.h>" << endl <<
 				"#include <stdio.h>" << endl <<
-				"#include <stdlib.h>" << endl << endl <<
-				"int main(void) {" << endl;
-				
+				"#include <stdlib.h>" << endl << endl;
+								
+				if (insert_list) {
+					cout << insertListOfFile() << endl;
+				}
+
+				cout << endl <<"int main(void) {" << endl;
+
 				for (string decl : decls) {
 					cout << decl << endl;
 				}
@@ -465,20 +473,20 @@ DECLARATION : TYPE TK_ID {
 				 	insertVar($2.label, {$1.transl, var, true, $3.size});
 				 	// decls.push_back($3.transl + "\t" + $1.transl + " " + var + "[" + $3.label + "];");
 					
-					vectorMap[var] = "vec_" + to_string(count_vector);
+					vectorMap[$2.label] = "vec_" + to_string(count_vector);
 					count_vector++;
 
 					//======== Insere os dados para o mapeamento =========
-				 	string init_list = "\n\tnode *" + vectorMap[var] + 
-				 			";\n\t" + vectorMap[var] + 
-				 			" = (node *) malloc(sizeof(node));\n\tinicia(" + 
-				 			vectorMap[var] + ");\n\tif(!" + 
-				 			vectorMap[var] + 
+				 	string init_list = "\n\tnode *" + vectorMap[$2.label] + 
+				 			";\n\t" + vectorMap[$2.label] + 
+				 			" = (node *) malloc(sizeof(node));\n\tinit(" + 
+				 			vectorMap[$2.label] + ");\n\tif(!" + 
+				 			vectorMap[$2.label] + 
 				 			") std::cout << \"Sem memoria disponivel!\\n\";";
 				 	
 				 	for (int i = 0; i < index_temp.size(); ++i)
 					{
-						init_list += "\n\tinsereFim(" + vectorMap[var] + 
+						init_list += "\n\tinsetBack(" + vectorMap[$2.label] + 
 								", " + index_temp[i] + ");";
 					}
 
@@ -531,16 +539,16 @@ VECTOR_INDEX:	VECTOR_INDEX '[' EXPR ']'
 					yyerror("Erro na linha: X. Esperava um valor do tipo \"int\" para definir o tamanho de um vetor.");
 				}
 
-				// string var = gera_variavel_temporaria("int");
-				// indices_temporarios.push_back($3.label);
-				// $$.traducao = $1.traducao + $3.traducao + ";\n";
+				string var = getNextVar();
+				decls.push_back("\tint " + var + ";");
+				index_temp.push_back($3.label);
+
+				$$.transl = $1.transl + $3.transl;
 			}
 			| '[' EXPR ']' {
 				if($2.type != "int") {
 					yyerror("Erro na linha: X. Esperava um valor do tipo \"int\" para definir o tamanho de um vetor.");
 				}
-				// indices_temporarios.push_back($2.label);
-				// $$.traducao = $2.traducao;
 				index_temp.push_back($2.label);
 				$$.transl = $2.transl;
 				$$.label = $2.label;
@@ -548,21 +556,41 @@ VECTOR_INDEX:	VECTOR_INDEX '[' EXPR ']'
 
 
 ATTRIBUTION	: TK_ID '=' EXPR {
-				strategy strat = getStrategy("=", $1.type, $3.type);
+				var_info* info = findVar($1.label);
+
+				strategy strat = getStrategy("=", info->type, $3.type);
 				
 				$$ = strat("=", $1, $3);
 			}
 			| TK_ID VECTOR_INDEX '=' EXPR {
 				var_info* info = findVar($1.label);
-
 				if (info != nullptr && info->name.size()) {
 					strategy strat = getStrategy("=", info->type, $4.type);
-					strat("=", $1, $4);
+					
+					string var = getNextVar();
+					decls.push_back("\tint " + var + ";");
+					vectorMap[var] = "vec_" + to_string(count_vector);
+					count_vector++;
 
+					string list = "\n\tnode *" + vectorMap[var] + 
+							";\n\t" + vectorMap[var] + 
+							" = (node *) malloc(sizeof(node));\n\tinit(" + 
+							vectorMap[var] + ");\n\tif(!" + 
+							vectorMap[var] + 
+							") std::cout << \"Sem memoria disponivel!\\n\";";
+
+					for (int i = 0; i < index_temp.size(); ++i)
+					{
+						list += "\n\tinsetBack(" + vectorMap[var] + ", " + index_temp[i] + ");";
+					}
+					index_temp.clear();
+
+					$$.transl = $2.transl + $4.transl + "\n\t" + list + "\n\t" + var + 
+							" = mapper(" + vectorMap[var] + ", " + vectorMap[$1.label] + 
+							");\n\t" + info->name + "[" + var +  "] = " + $4.label + ";\n";
 					$$.type = info->type;
 					$$.size = info->size;
 
-					$$.transl = $4.transl + $2.transl + "\n\t" + info->name + "[" + $2.label + "]" " = " + $4.label + ";";
 				} else {
 					// throw compile error
 					yyerror("Variable " + $1.label + " not declared.");
@@ -936,7 +964,7 @@ EXPR 		: EXPR '+' EXPR {
 				}
 			}
 			| TK_ID VECTOR_INDEX {
-				
+				/*
 				var_info* info = findVar($1.label);
 				
 				if (info != nullptr && info->name.size()) {
@@ -946,6 +974,43 @@ EXPR 		: EXPR '+' EXPR {
 
 					$$.transl = $2.transl;
 					$$.label = info->name + "[" + $2.label + "]";
+				} else {
+					// throw compile error
+					yyerror("Variable " + $1.label + " not declared.");
+				}
+				*/
+				var_info* info = findVar($1.label);
+				if (info != nullptr && info->name.size()) {
+					// strategy strat = getStrategy("=", info->type, $4.type);
+					
+					string var = getNextVar();
+					string value = getNextVar();
+					decls.push_back("\tint " + var + ";");
+					decls.push_back("\t" + info->type + " " + value + ";");
+
+					vectorMap[var] = "vec_" + to_string(count_vector);
+					count_vector++;
+
+					string list = "\n\tnode *" + vectorMap[var] + 
+							";\n\t" + vectorMap[var] + 
+							" = (node *) malloc(sizeof(node));\n\tinit(" + 
+							vectorMap[var] + ");\n\tif(!" + 
+							vectorMap[var] + 
+							") std::cout << \"Sem memoria disponivel!\\n\";";
+
+					for (int i = 0; i < index_temp.size(); ++i)
+					{
+						list += "\n\tinsetBack(" + vectorMap[var] + ", " + index_temp[i] + ");";
+					}
+					index_temp.clear();
+
+					$$.transl = $2.transl + "\n\t" + list + "\n\t" + var + 
+							" = mapper(" + vectorMap[var] + ", " + vectorMap[$1.label] + 
+							");\n\t" + value + " = " + info->name + "[" + var +  "]" + ";\n";
+					$$.type = info->type;
+					$$.size = info->size;
+					$$.label = value;
+
 				} else {
 					// throw compile error
 					yyerror("Variable " + $1.label + " not declared.");
@@ -1405,6 +1470,22 @@ node doStringAttrib(string op, node left, node right) {
 	}
 	
 	return result;
+}
+
+string insertListOfFile()
+{
+	stringstream code;
+	string line;
+	ifstream myfile ("./util/list.dat");
+	if (myfile.is_open())
+	{
+		while ( getline (myfile,line) )
+		{
+			code << line << "\n";
+		}
+		myfile.close();
+	}
+	return code.str();
 }
 
 node fallback(string op, node left, node right) {

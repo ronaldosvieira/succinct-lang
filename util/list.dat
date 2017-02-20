@@ -1,0 +1,168 @@
+struct N
+{
+	char c[1024];
+};
+typedef struct N str;
+
+struct Node
+{
+	int num;
+	struct Node *next;
+}; 
+typedef struct Node node;
+
+void init(node *LIST)
+{
+	LIST->next = NULL;
+}
+
+int isEmpty(node *LIST)
+{
+	int temp;
+	temp = LIST->next == NULL;
+	if(!temp) goto l1v;
+	return 1;
+l1v:
+	return 0;
+}
+
+void insetBack(node *LIST, int num)
+{
+	node *new_node;
+	new_node = (node *) malloc(sizeof(node));
+	if(new_node) goto l2i;
+	printf("No memory available.\n");
+	exit(1);
+l2i:
+	new_node->num = num;
+	new_node->next = NULL;
+	if(!isEmpty(LIST)) goto l3i;
+	LIST->next=new_node;
+	return;
+l3i:
+	node *tmp;
+	tmp = LIST->next;
+l4i:
+	if(tmp->next == NULL) goto l5i;
+	tmp = tmp->next;
+	goto l4i;
+l5i:
+	tmp->next = new_node;
+}
+
+void show(node *LIST)
+{
+	if(!isEmpty(LIST)) goto l1e;
+	printf("Empty list.\n\n");
+	return ;
+l1e:
+	node *tmp;
+	tmp = LIST->next;
+l2e:
+	if( tmp == NULL) goto l3e;
+	printf("%d\n", tmp->num);
+	tmp = tmp->next;
+	goto l2e;
+l3e:
+	printf("\n");
+}
+
+int size(node *LIST)
+{
+	int sizeList;
+	sizeList = 0;
+	if(isEmpty(LIST)) return sizeList;
+	node *tmp;
+	tmp = LIST->next;
+l1t:
+	if(tmp == NULL) goto l2t;
+	sizeList++;
+	tmp = tmp->next;
+	goto l1t;
+l2t:
+	return sizeList;
+}
+
+int mapper(node *index, node *sizeIndex)
+{
+	int address = 0;
+	int mult;
+	node *tmp_index;
+	tmp_index = index->next;
+	node *tmp_size;
+	tmp_size = sizeIndex->next;
+	int i;
+	int test;
+	int t1;
+	int t2;
+	int t3;
+	int t4;
+	i = 0;
+l2m:
+	test = i < size(sizeIndex);
+	if(!test) goto l1m;
+	t1 = tmp_index->num >= tmp_size->num;
+	t2 = tmp_index->num*(-1) > tmp_size->num;
+	t3 = size(index) != size(sizeIndex);
+	if(t1) goto l3m;
+	if(t2) goto l3m;
+	if(t3) goto l3m;
+	goto l4m;
+l3m:
+	printf("\nSegmentation fault.\n");
+	exit(1);
+l4m:
+	t4 = tmp_index->num < 0;
+	if(!t4) goto l5m;
+	tmp_index->num = tmp_size->num + tmp_index->num;
+l5m:
+	tmp_index = tmp_index->next;
+	tmp_size = tmp_size->next;
+	i = i + 1;
+	goto l2m;
+l1m:
+	tmp_index = index->next;
+	tmp_size = sizeIndex->next;
+	node *aux;
+	aux = sizeIndex->next;
+	int i2;
+	int i3;
+	int test2;
+	int test3;
+	i2 = 0;
+l6m:
+	test2 = i2 < size(sizeIndex) - 1;
+	if(!test2) goto l7m;
+	mult = tmp_index->num;
+	i3 = i2;
+l8m:
+	test3 = i3 < size(sizeIndex) - 1;
+	if(!test3) goto l9m;
+	mult = mult*tmp_size->num;
+	tmp_size = tmp_size->next;
+	i3 = i3 + 1;
+	goto l8m;
+l9m:
+	tmp_size = aux;
+	address += mult;
+	tmp_index = tmp_index->next;
+	aux = aux->next;
+	i2 = i2 + 1;
+	goto l6m;
+l7m:
+	int i4;
+	int test4;
+	int val;
+	i4 = 0;
+	tmp_index = index->next;
+l10m:
+	test4 = i4 < size(sizeIndex);
+	if(!test4) goto l11m;
+	val = tmp_index->num;
+	tmp_index = tmp_index->next;
+	i4 = i4 + 1;
+	goto l10m;
+l11m:
+	address = address + val;
+	return address;
+}
