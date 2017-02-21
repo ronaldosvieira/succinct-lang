@@ -14,6 +14,8 @@ using namespace std;
 
 /******* declarações *******/
 
+int line = 1;
+
 typedef struct attributes {
 	string label; // nome da variável usada no cód. intermediário (ex: "t0")
 	string type; // tipo no código intermediário (ex: "int")
@@ -174,12 +176,14 @@ S 			: STATEMENTS {
 				"#include <string.h>" << endl <<
 				"#include <stdio.h>" << endl <<
 				"#include <stdlib.h>" << endl << endl;
-								
+				
+				cout << endl <<"\nint line = 1;\n" << endl;
+
 				if (insert_list) {
 					cout << insertListOfFile() << endl;
 				}
 
-				cout << endl <<"int main(void) {" << endl;
+				cout << endl <<"\nint main(void) {" << endl;
 
 				for (string decl : decls) {
 					cout << decl << endl;
@@ -582,7 +586,7 @@ ATTRIBUTION	: TK_ID '=' EXPR {
 					vectorMap[var] = "vec_" + to_string(count_vector);
 					count_vector++;
 
-					string list = "\n\tnode *" + vectorMap[var] + 
+					string list = "\n\tline = " + std::to_string(line) + ";\n\tnode *" + vectorMap[var] + 
 							";\n\t" + vectorMap[var] + 
 							" = (node *) malloc(sizeof(node));\n\tinit(" + 
 							vectorMap[var] + ");\n\tif(!" + 
@@ -1001,7 +1005,7 @@ EXPR 		: EXPR '+' EXPR {
 					vectorMap[var] = "vec_" + to_string(count_vector);
 					count_vector++;
 
-					string list = "\n\tnode *" + vectorMap[var] + 
+					string list = "\n\tline = " + std::to_string(line) + ";\n\tnode *" + vectorMap[var] + 
 							";\n\t" + vectorMap[var] + 
 							" = (node *) malloc(sizeof(node));\n\tinit(" + 
 							vectorMap[var] + ");\n\tif(!" + 

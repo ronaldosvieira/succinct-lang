@@ -144,7 +144,7 @@ COMML	    "//"[^\n]*
     return TK_ID;
 }
 
-{BREAK}		{}
+{BREAK}		{++line;}
 
 {COMML}     {}
 

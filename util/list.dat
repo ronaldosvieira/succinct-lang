@@ -109,7 +109,7 @@ l2m:
 	if(t3) goto l3m;
 	goto l4m;
 l3m:
-	printf("\nSegmentation fault.\n");
+	printf("\nLine: %d Segmentation fault.\n", line);
 	exit(1);
 l4m:
 	t4 = tmp_index->num < 0;
