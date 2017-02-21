@@ -34,6 +34,13 @@ typedef struct loop_info {
 	string end; // nome da label do fim do bloco
 } loop_info;
 
+typedef struct func_info {
+	string label;
+	vector<var_info> params;
+	string type;
+	string transl;
+} func_info;
+
 typedef function<node(string, node, node)> strategy;
 
 string type1, type2, op, typeRes, strategyName, value;
@@ -41,12 +48,16 @@ ifstream opMapFile, padraoMapFile;
 
 int tempGen = 0;
 int tempLabel = 0;
+int tempFunc = 0;
 
 // declarações de variáveis
 vector<string> decls;
 
 // desalocações de variáveis
 vector<string> desacs;
+
+// declarações de funções
+vector<func_info> funcs;
 
 // pilha de mapas de variável
 vector<map<string, var_info>> varMap;
@@ -74,6 +85,9 @@ string getNextVar();
 
 // obtém o próximo nome de label disponível
 string getNextLabel();
+
+// otém o próximo nome de função disponível
+string getNextFunc();
 
 // inicia um novo contexto
 void pushContext();
@@ -146,6 +160,8 @@ void yyerror(string);
 %token TK_BREAK "break"
 %token TK_CONT "continue"
 %token TK_ALL "all"
+%token TK_ARROW "->"
+%token TK_FUNC_TYPE "func"
 
 %start S
 
@@ -171,9 +187,20 @@ S 			: STATEMENTS {
 					cout << decl << endl;
 				}
 				
-				cout << endl << "int main(void) {" << endl;
+				cout << endl;
 				
-				cout << endl << $1.transl; 
+				for (func_info func : funcs) {
+					cout << func.type + " " + func.label + "(";
+					
+					for (int i = 0; i < func.params.size(); ++i) {
+						cout << func.params[i].type + " " + func.params[i].name;
+						if (i < func.params.size() - 1) cout << ", ";
+					}
+					
+					cout << ") {\n" + func.transl + "}\n" << endl;
+				}
+				
+				cout << "int main(void) {" << endl << $1.transl;
 				
 				for (string desac : desacs) {
 					cout << "\tfree(" << desac << ");" << endl;
@@ -754,17 +781,42 @@ DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
 			}
 			;
 			
-FUNC_DEF	: "func" FUNC_PARAMS TK_BSTART BLOCK {/* todo */}
+FUNCTION	: "func" FUNC_PARAMS "->" TYPE TK_BSTART PUSH_LOOP BLOCK PUSH_LOOP {
+				string func = getNextFunc();
+				string var = getNextVar();
+				vector<var_info> params;
+				string paramsType = "";
+				
+				string returnType = $4.transl;
+				
+				/* todo: populate params vector */
+	
+				$$.type = "func";
+				$$.label = var;
+				
+				for (int i = 0; i < params.size(); ++i) {
+					paramsType += params[i].type;
+					if (i < params.size() - 1) paramsType += ", ";
+				}
+				
+				decls.push_back(returnType + " (*" + var + ")(" 
+					+ paramsType + ");");
+				$$.transl = "\t" + var + " = " + func + ";\n";
+				
+				funcs.push_back({func, params, returnType, $7.transl});
+			}
 			;
 			
-FUNC_PARAMS	: TYPE TK_ID ',' FUNC_PARAMS {/* todo */}
-			| TYPE TK_ID {/* todo */}
+FUNC_PARAMS	: TYPE TK_ID ',' FUNC_PARAMS /*{ todo }*/
+			| TYPE TK_ID /*{ todo }*/
 			;
 			
-FUNC_APPL	: TK_ID '(' FUNC_ARGS ')' {/* todo */}
+FUNC_APPL	: TK_ID '(' FUNC_ARGS ')' {
+				//$$.type = 
+			}
 			;
 			
-FUNC_ARGS	: EXPR ',' FUNC_ARGS {/* todo */}
+FUNC_ARGS	: EXPR ',' FUNC_ARGS /*{ todo }*/
 			;
 
 EXPR 		: EXPR '+' EXPR {
@@ -884,7 +936,7 @@ EXPR 		: EXPR '+' EXPR {
 				}
 			}
 			| INCR_OR_DECR
-			| FUNC_DEF
+			| FUNCTION
 			| VALUE_OR_ID
 			;
 			
@@ -942,7 +994,7 @@ VALUE_OR_ID	: TK_NUM {
 					yyerror("Variable " + $1.label + " not declared.");
 				}
 			}
-			| FUNC_APPL {/* todo */}
+			| FUNC_APPL /*{ todo }*/
 			;
 			
 TYPE		: TK_INT_TYPE
@@ -952,6 +1004,7 @@ TYPE		: TK_INT_TYPE
 			| TK_CHAR_TYPE
 			| TK_STRING_TYPE
 			| TK_BOOL_TYPE
+			| TK_FUNC_TYPE
 			;
 
 %%
@@ -1090,6 +1143,10 @@ string getNextVar() {
 
 string getNextLabel() {
 	return "lbl" + to_string(tempLabel++);
+}
+
+string getNextFunc() {
+	return "func" + to_string(tempFunc++);
 }
 
 strategy getStrategy(string op, string type1, string type2) {

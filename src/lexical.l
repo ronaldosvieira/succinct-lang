@@ -76,6 +76,7 @@ COMML	    "//"[^\n]*
 "char"		{ yylval.transl = yytext; return TK_CHAR_TYPE; }
 "string"	{ yylval.transl = yytext; return TK_STRING_TYPE; }
 "bool"      { yylval.transl = yytext; return TK_BOOL_TYPE; }
+"func"      { yylval.transl = yytext; return TK_FUNC_TYPE; }
 "const"     { yylval.transl = yytext; return TK_CONST; }
 
 [(){}[\];,]	{ return *yytext; }
@@ -93,6 +94,8 @@ COMML	    "//"[^\n]*
 
 "++"        { return TK_INCR; }
 "--"        { return TK_DECR; }
+
+"->"        { return TK_ARROW; }
 
 {INT}		{
     yylval.transl = "";
