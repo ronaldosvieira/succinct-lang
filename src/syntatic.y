@@ -796,15 +796,15 @@ DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
 			}
 			;
 			
-FUNCTION	: "func" FUNC_PARAMS "->" TYPE TK_BSTART BLOCK {
+FUNCTION	: "func" PUSH_SCOPE FUNC_PARAMS "->" TYPE TK_BSTART BLOCK POP_SCOPE {
 				string func = getNextFunc();
 				string var = getNextVar();
 				vector<var_info> params;
 				string paramsType = "";
 				
-				string returnType = $4.transl;
+				string returnType = $5.transl;
 				
-				for (string param : split($2.transl, ';')) {
+				for (string param : split($3.transl, ';')) {
 					vector<string> info = split(param, ' ');
 					
 					params.push_back({info[0], info[1], true, 0});
@@ -822,25 +822,34 @@ FUNCTION	: "func" FUNC_PARAMS "->" TYPE TK_BSTART BLOCK {
 					+ paramsType + ");");
 				$$.transl = "\t" + var + " = " + func + ";\n";
 				
-				insertFunc(var, {func, params, returnType, $6.transl});
+				insertFunc(var, {func, params, returnType, $7.transl});
 			}
 			;
 			
-FUNC_PARAMS	: TYPE TK_ID ',' FUNC_PARAMS {
-				string var = getNextVar();
-				
-				decls.push_back($1.transl + " " + var + ";");
-				
-				$$.transl = $1.transl + " " + var + ";" + $4.transl;
+FUNC_PARAMS	: FUNC_PARAM ',' FUNC_PARAMS {
+				$$.transl = $1.transl + ";" + $3.transl;
 			}
-			| TYPE TK_ID {
+			| FUNC_PARAM {
+				$$.transl = $1.transl;
+			}
+			;
+			
+FUNC_PARAM	: TYPE TK_ID {
 				string var = getNextVar();
 				
 				decls.push_back($1.transl + " " + var + ";");
+				insertVar($2.label, {$1.transl, var, true, 0});
 				
 				$$.transl = $1.transl + " " + var;
 			}
-			;
+			| "const" TYPE TK_ID {
+				string var = getNextVar();
+				
+				decls.push_back($2.transl + " " + var + ";");
+				insertVar($3.label, {$2.transl, var, false, 0});
+				
+				$$.transl = $2.transl + " " + var;
+			}
 			
 FUNC_APPL	: TK_ID '(' FUNC_ARGS ')' {
 				var_info* info = findVar($1.label);
@@ -1032,6 +1041,7 @@ EXPR 		: EXPR '+' EXPR {
 			}
 			| INCR_OR_DECR
 			| FUNCTION
+			| FUNC_APPL
 			| VALUE_OR_ID
 			;
 			
@@ -1089,7 +1099,6 @@ VALUE_OR_ID	: TK_NUM {
 					yyerror("Variable " + $1.label + " not declared.");
 				}
 			}
-			| FUNC_APPL
 			;
 			
 TYPE		: TK_INT_TYPE
