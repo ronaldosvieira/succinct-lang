@@ -205,7 +205,7 @@ S 			: STATEMENTS {
 				cout << endl;
 				
 				for (func_info func : funcs) {
-					cout << func.type + " " + func.label + " (";
+					cout << func.type + " " + func.label + "(";
 					
 					for (int i = 0; i < func.params.size(); ++i) {
 						cout << func.params[i].type + " " + func.params[i].name;
@@ -846,16 +846,43 @@ FUNC_APPL	: TK_ID '(' FUNC_ARGS ')' {
 				var_info* info = findVar($1.label);
 				
 				if (info == nullptr) {
-					// throw compile error
 					yyerror("Variable " + $1.label + " not declared.");
 				}
 	
 				func_info* func = findFunc(info->name);
 				
 				if (func == nullptr) {
-					// throw compile error
 					yyerror("Function application on '" + $1.label 
 						+ "' non-func variable.");
+				}
+				
+				vector<var_info> args;
+				string argsStr;
+				
+				// obtém lista de argumentos passados
+				for (string arg : split($3.label, ';')) {
+					vector<string> info = split(arg, ' ');
+					
+					args.push_back({info[0], info[1], true, 0});
+				}
+				
+				// valida qtd de argumentos passados
+				if (func->params.size() != args.size()) {
+					yyerror("Function takes " + to_string(func->params.size()) 
+						+ " arguments, " + to_string(args.size()) + " given.");
+				}
+				
+				// valida tipo dos argumentos passados
+				for (int i = 0; i < func->params.size(); ++i) {
+					var_info* param = &func->params[i];
+					var_info* arg = &args[i];
+					
+					// todo: lidar com conversão
+					if (param->type != arg->type) {
+						yyerror("Argument " + to_string(i + 1) 
+							+ " of function '" + $1.label + "' expects " 
+							+ param->type + ", " + arg->type + " given.");
+					}
 				}
 				
 				string var = getNextVar();
@@ -863,26 +890,26 @@ FUNC_APPL	: TK_ID '(' FUNC_ARGS ')' {
 				$$.type = func->type;
 				$$.label = var;
 				
-				if (func->params.size() != $3.size) {
-					// throw compile error
-					yyerror("Function takes " + to_string(func->params.size()) 
-						+ " arguments, " + to_string($3.size) + " given.");
+				// monta lista de argumentos para cód. interm.
+				for (int i = 0; i < args.size(); ++i) {
+					argsStr += args[i].name;
+					if (i < args.size() - 1) argsStr += ", ";
 				}
 				
 				decls.push_back($$.type + " " + $$.label + ";");
 				$$.transl = $3.transl + "\t" + var + " = " + info->name 
-					+ "(" + $3.label + ");\n";
+					+ "(" + argsStr + ");\n";
 			}
 			;
 			
 FUNC_ARGS	: EXPR ',' FUNC_ARGS {
 				$$.transl = $1.transl + $3.transl;
-				$$.label = $1.label + ", " + $3.label;
+				$$.label = $1.type + " " + $1.label + ";" + $3.label;
 				$$.size = $3.size + 1;
 			}
 			| EXPR {
 				$$.transl = $1.transl;
-				$$.label = $1.label;
+				$$.label = $1.type + " " + $1.label;
 				$$.size = 1;
 			}
 			;
