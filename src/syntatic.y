@@ -116,6 +116,12 @@ loop_info* getOuterLoop();
 // remove o loop atual
 void popLoop();
 
+// separar uma string
+template<typename Out>
+void split(const string &s, char delim, Out result);
+
+vector<string> split(const string &s, char delim);
+
 // obtém a estratégia para os tipos e operação especificadas
 strategy getStrategy(string op, string type1, string type2);
 
@@ -190,7 +196,7 @@ S 			: STATEMENTS {
 				cout << endl;
 				
 				for (func_info func : funcs) {
-					cout << func.type + " " + func.label + "(";
+					cout << func.type + " " + func.label + " (";
 					
 					for (int i = 0; i < func.params.size(); ++i) {
 						cout << func.params[i].type + " " + func.params[i].name;
@@ -789,7 +795,12 @@ FUNCTION	: "func" FUNC_PARAMS "->" TYPE TK_BSTART PUSH_LOOP BLOCK PUSH_LOOP {
 				
 				string returnType = $4.transl;
 				
-				/* todo: populate params vector */
+				for (string param : split($2.transl, ';')) {
+					cout << param << endl;
+					vector<string> info = split(param, ' ');
+					
+					params.push_back({info[0], info[1], true, 0});
+				}
 	
 				$$.type = "func";
 				$$.label = var;
@@ -807,12 +818,24 @@ FUNCTION	: "func" FUNC_PARAMS "->" TYPE TK_BSTART PUSH_LOOP BLOCK PUSH_LOOP {
 			}
 			;
 			
-FUNC_PARAMS	: TYPE TK_ID ',' FUNC_PARAMS /*{ todo }*/
-			| TYPE TK_ID /*{ todo }*/
+FUNC_PARAMS	: TYPE TK_ID ',' FUNC_PARAMS {
+				string var = getNextVar();
+				
+				decls.push_back($1.transl + " " + var + ";");
+				
+				$$.transl = $1.transl + " " + var + ";" + $4.transl;
+			}
+			| TYPE TK_ID {
+				string var = getNextVar();
+				
+				decls.push_back($1.transl + " " + var + ";");
+				
+				$$.transl = $1.transl + " " + var;
+			}
 			;
 			
 FUNC_APPL	: TK_ID '(' FUNC_ARGS ')' {
-				//$$.type = 
+				
 			}
 			;
 			
@@ -1147,6 +1170,22 @@ string getNextLabel() {
 
 string getNextFunc() {
 	return "func" + to_string(tempFunc++);
+}
+
+template<typename Out>
+void split(const string &s, char delim, Out result) {
+    stringstream ss;
+    ss.str(s);
+    string item;
+    while (getline(ss, item, delim)) {
+        *(result++) = item;
+    }
+}
+
+vector<string> split(const string &s, char delim) {
+    vector<string> elems;
+    split(s, delim, back_inserter(elems));
+    return elems;
 }
 
 strategy getStrategy(string op, string type1, string type2) {
