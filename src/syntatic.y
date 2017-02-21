@@ -165,12 +165,13 @@ S 			: STATEMENTS {
 				"#include <iostream>" << endl <<
 				"#include <string.h>" << endl <<
 				"#include <stdio.h>" << endl <<
-				"#include <stdlib.h>" << endl << endl <<
-				"int main(void) {" << endl;
+				"#include <stdlib.h>" << endl << endl;
 				
 				for (string decl : decls) {
 					cout << decl << endl;
 				}
+				
+				cout << endl << "int main(void) {" << endl;
 				
 				cout << endl << $1.transl; 
 				
@@ -276,7 +277,7 @@ CONTROL		: "if" EXPR TK_BSTART BLOCK {
 					string var = getNextVar();
 					string end = getNextLabel();
 					
-					decls.push_back("\tint " + var + ";");
+					decls.push_back("int " + var + ";");
 					
 					$$.transl = $2.transl + 
 						"\t" + var + " = !" + $2.label + ";\n" +
@@ -297,7 +298,7 @@ CONTROL		: "if" EXPR TK_BSTART BLOCK {
 				string var = getNextVar();
 				string endif = getNextLabel();
 				
-				decls.push_back("\tint " + var + ";");
+				decls.push_back("int " + var + ";");
 				
 				$$.transl = $2.transl + 
 					"\t" + var + " = !" + $2.label + ";\n" +
@@ -313,7 +314,7 @@ IF_PREDS	: "elif" EXPR TK_BSTART BLOCK {
 				string var = getNextVar();
 				string endelif = getNextLabel();
 				
-				decls.push_back("\tint " + var + ";");
+				decls.push_back("int " + var + ";");
 				
 				$$.transl = $2.transl + 
 					"\t" + var + " = !" + $2.label + ";\n" +
@@ -326,7 +327,7 @@ IF_PREDS	: "elif" EXPR TK_BSTART BLOCK {
 				string var = getNextVar();
 				string endelif = getNextLabel();
 				
-				decls.push_back("\tint " + var + ";");
+				decls.push_back("int " + var + ";");
 				
 				$$.transl = $2.transl + 
 					"\t" + var + " = !" + $2.label + ";\n" +
@@ -381,7 +382,7 @@ LOOP		: "while" EXPR TK_BSTART BLOCK {
 					string var = getNextVar();
 					loop_info* loop = getLoop();
 					
-					decls.push_back("\tint " + var + ";");
+					decls.push_back("int " + var + ";");
 					
 					$$.transl = $2.transl + loop->start + ":" + $4.transl + 
 						"\t" + var + " = !" + $4.label + ";\n" +
@@ -439,7 +440,7 @@ DECLARATION : TYPE TK_ID {
 					
 					insertVar($2.label, {$1.transl, var, true, 0});
 					
-					decls.push_back("\t" + $1.transl + " " + var + ";");
+					decls.push_back($1.transl + " " + var + ";");
 					$$.transl = "\t" + var + " = " + 
 						padraoMap[$1.transl] + ";\n";
 					$$.label = var;
@@ -481,7 +482,7 @@ DIMENSION:	DIMENSION '[' EXPR ']' {
 				}
 
 				string var = getNextVar();
-				decls.push_back("\tint " + var + ";");
+				decls.push_back("int " + var + ";");
 
 				$$.transl = $1.transl + $3.transl + "\n\t" + var + " = " 
 					+ $1.label + " * " + $3.label + ";\n";
@@ -517,7 +518,7 @@ INCREMENT	: "++" TK_ID {
 					}
 					
 					string var = getNextVar();
-					decls.push_back("\tint " + var + ";");
+					decls.push_back("int " + var + ";");
 					
 					// se incremento é permitido
 					if (info->type == "int") {
@@ -531,7 +532,7 @@ INCREMENT	: "++" TK_ID {
 						
 						// se conversão é permitida
 						if (resType.size()) {
-							decls.push_back("\t" + resType + " " + var2 + ";");
+							decls.push_back(resType + " " + var2 + ";");
 							
 							$$.type = $2.type;
 							$$.transl = "\t" + var + " = 1;\n\t" + 
@@ -560,8 +561,8 @@ INCREMENT	: "++" TK_ID {
 					
 					string var = getNextVar();
 					string var2 = getNextVar();
-					decls.push_back("\tint " + var + ";");
-					decls.push_back("\t" + info->type + " " + var2 + ";");
+					decls.push_back("int " + var + ";");
+					decls.push_back(info->type + " " + var2 + ";");
 					
 					// se incremento é permitido
 					if (info->type == "int") {
@@ -605,7 +606,7 @@ DECREMENT	: "--" TK_ID {
 					}
 					
 					string var = getNextVar();
-					decls.push_back("\tint " + var + ";");
+					decls.push_back("int " + var + ";");
 					
 					// se incremento é permitido
 					if (info->type == "int") {
@@ -619,7 +620,7 @@ DECREMENT	: "--" TK_ID {
 						
 						// se conversão é permitida
 						if (resType.size()) {
-							decls.push_back("\t" + resType + " " + var2 + ";\n");
+							decls.push_back(resType + " " + var2 + ";\n");
 							
 							$$.type = $2.type;
 							$$.transl = "\t" + var + " = 1;\n\t" + 
@@ -648,8 +649,8 @@ DECREMENT	: "--" TK_ID {
 					
 					string var = getNextVar();
 					string var2 = getNextVar();
-					decls.push_back("\tint " + var + ";");
-					decls.push_back("\t" + info->type + " " + var2 + ";");
+					decls.push_back("int " + var + ";");
+					decls.push_back(info->type + " " + var2 + ";");
 					
 					// se incremento é permitido
 					if (info->type == "int") {
@@ -703,7 +704,7 @@ DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
 					
 					// se conversão é permitida
 					if (resType.size()) {
-						decls.push_back("\t" + $1.transl + " " + var + ";");
+						decls.push_back($1.transl + " " + var + ";");
 						
 						$$.transl = $4.transl + "\t" + 
 							var + " = (" + $1.transl + ") " + $4.label + 
@@ -732,7 +733,7 @@ DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
 						
 						// se conversão é permitida
 						if (resType.size()) {
-							decls.push_back("\t" + $2.transl + " " + var + ";");
+							decls.push_back($2.transl + " " + var + ";");
 							
 							$$.transl = $5.transl + "\t" + 
 								var + " = (" + $2.transl + ") " + $5.label + 
@@ -831,10 +832,10 @@ EXPR 		: EXPR '+' EXPR {
 					getNextVar(), getNextVar()};
 				
 				if ($1.type == "bool" && $3.type == "bool") {
-					decls.push_back("\tint " + var[0] + ";");
-					decls.push_back("\tint " + var[1] + ";");
-					decls.push_back("\tint " + var[2] + ";");
-					decls.push_back("\tint " + var[3] + ";");
+					decls.push_back("int " + var[0] + ";");
+					decls.push_back("int " + var[1] + ";");
+					decls.push_back("int " + var[2] + ";");
+					decls.push_back("int " + var[3] + ";");
 					
 					$$.type = "bool";
 					$$.transl = $1.transl + $3.transl +
@@ -854,7 +855,7 @@ EXPR 		: EXPR '+' EXPR {
 				if ($2.type == "bool") {
 					$$.type = $2.type;
 					$$.label = var;
-					decls.push_back("\tint " + var + ";");
+					decls.push_back("int " + var + ";");
 					$$.transl = $2.transl +
 						"\t" + var + " = !" + $2.label + ";\n";
 				} else {
@@ -873,7 +874,7 @@ EXPR 		: EXPR '+' EXPR {
 				
 				if (type.size()) {
 					$$.type = $3.transl;
-					decls.push_back("\t" + type + " " + var + ";");
+					decls.push_back(type + " " + var + ";");
 					$$.transl = $1.transl + 
 						"\t" + var + " = (" + $3.transl + ") " + $1.label + ";\n";
 					$$.label = var;
@@ -899,7 +900,7 @@ VALUE_OR_ID	: TK_NUM {
 					value = to_string(stol(value));
 				}
 				
-				decls.push_back("\t" + $1.type + " " + var + ";");
+				decls.push_back($1.type + " " + var + ";");
 				$$.transl = "\t" + var + " = " + value + ";\n";
 				$$.label = var;
 			}
@@ -908,21 +909,21 @@ VALUE_OR_ID	: TK_NUM {
 				
 				$1.label = ($1.label == "true"? "1" : "0");
 				
-				decls.push_back("\tint " + var + ";");
+				decls.push_back("int " + var + ";");
 				$$.transl = "\t" + var + " = " + $1.label + ";\n";
 				$$.label = var;
 			}
 			| TK_CHAR {
 				string var = getNextVar();
 				
-				decls.push_back("\t" + $1.type + " " + var + ";");
+				decls.push_back($1.type + " " + var + ";");
 				$$.transl = "\t" + var + " = " + $1.label + ";\n";
 				$$.label = var;
 			}
 			| TK_STRING {
 				string var = getNextVar();
 				
-				decls.push_back("\tchar* " + var + ";");
+				decls.push_back("char* " + var + ";");
 				
 				$$.transl = "\t" + var + " = (char*) \"" + $1.label + "\";\n";
 				$$.size = $1.label.size();
@@ -1129,7 +1130,7 @@ node doSimpleAritOp(string op, node left, node right) {
 	// if left needs conversion
 	if (left.type != resType) {
 		string var1 = getNextVar();
-		decls.push_back("\t" + resType + " " + var1 + ";");
+		decls.push_back(resType + " " + var1 + ";");
 		
 		result.transl += "\t" + var1 + " = (" + 
 			resType + ") " + left.label + ";\n";
@@ -1140,7 +1141,7 @@ node doSimpleAritOp(string op, node left, node right) {
 	// if right needs conversion
 	if (right.type != resType) {
 		string var1 = getNextVar();
-		decls.push_back("\t" + resType + " " + var1 + ";");
+		decls.push_back(resType + " " + var1 + ";");
 		
 		result.transl += "\t" + var1 + " = (" + 
 			resType + ") " + right.label + ";\n";
@@ -1149,7 +1150,7 @@ node doSimpleAritOp(string op, node left, node right) {
 	}
 	
 	result.type = resType;
-	decls.push_back("\t" + result.type + " " + var + ";");
+	decls.push_back(result.type + " " + var + ";");
 	
 	result.transl += "\t" + var + " = " + 
 		left.label + " " + op + " " + right.label + ";\n";
@@ -1178,7 +1179,7 @@ node doSimpleRelOp(string op, node left, node right) {
 	
 	if (left.type != resType) {
 		string var1 = getNextVar();
-		decls.push_back("\t" + resType + " " + var1 + ";");
+		decls.push_back(resType + " " + var1 + ";");
 		result.transl += "\t" + var1 + " = (" + 
 			resType + ") " + left.label + ";\n";
 		
@@ -1187,7 +1188,7 @@ node doSimpleRelOp(string op, node left, node right) {
 	
 	if (right.type != resType) {
 		string var1 = getNextVar();
-		decls.push_back("\t" + resType + " " + var1 + ";");
+		decls.push_back(resType + " " + var1 + ";");
 		result.transl += "\t" + var1 + " = (" + 
 			resType + ") " + right.label + ";\n";
 		
@@ -1195,7 +1196,7 @@ node doSimpleRelOp(string op, node left, node right) {
 	}
 
 	result.type = "bool";
-	decls.push_back("\tint " + var + ";");
+	decls.push_back("int " + var + ";");
 	result.transl += "\t" + var + " = " + 
 		left.label + " " + op + " " + right.label + ";\n";
 	result.label = var;
@@ -1219,7 +1220,7 @@ node doSimpleLogicOp(string op, node left, node right) {
 	}
 	
 	result.type = "bool";
-	decls.push_back("\tint " + var + ";");
+	decls.push_back("int " + var + ";");
 	result.transl = left.transl + right.transl + 
 	"\t" + var + " = " + left.label + " " + op + " " + right.label + ";\n";
 	result.label = var;
@@ -1240,7 +1241,7 @@ node doStringConcat(string op, node left, node right) {
 	result.transl = left.transl + right.transl;
 	
 	result.type = resType;
-	decls.push_back("\tchar* " + var + ";");
+	decls.push_back("char* " + var + ";");
 	desacs.push_back(var);
 	
 	result.transl += 
@@ -1282,7 +1283,7 @@ node doSimpleAttrib(string op, node left, node right) {
 		
 		// se conversão é permitida
 		if (resType.size()) {
-			decls.push_back("\t" + info->type + " " + var + ";");
+			decls.push_back(info->type + " " + var + ";");
 			
 			result.transl = right.transl + "\t" + 
 				var + " = (" + info->type + ") " + 
@@ -1329,7 +1330,7 @@ node doStringAttrib(string op, node left, node right) {
 		
 		// se conversão é permitida
 		if (resType.size()) {
-			decls.push_back("\t" + info->type + " " + var + ";");
+			decls.push_back(info->type + " " + var + ";");
 			
 			result.transl = right.transl + "\t" + 
 				var + " = (" + info->type + ") " + 
