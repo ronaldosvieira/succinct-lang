@@ -65,6 +65,9 @@ vector<map<string, var_info>> varMap;
 // pilha de labels de loops
 vector<loop_info> loopMap;
 
+// mapa de funções
+map<string, func_info> funcMap;
+
 // mapa de tipos
 map<string, string> typeMap;
 
@@ -103,6 +106,12 @@ var_info* findVarOnTop(string label);
 
 // insere uma nova variável no contexto atual
 void insertVar(string label, var_info info);
+
+// procura uma função no mapa de funções
+func_info* findFunc(string var);
+
+// insere uma nova função no mapa de funções
+void insertFunc(string var, func_info info);
 
 // registra um novo loop
 void pushLoop();
@@ -787,7 +796,7 @@ DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
 			}
 			;
 			
-FUNCTION	: "func" FUNC_PARAMS "->" TYPE TK_BSTART PUSH_LOOP BLOCK PUSH_LOOP {
+FUNCTION	: "func" FUNC_PARAMS "->" TYPE TK_BSTART BLOCK {
 				string func = getNextFunc();
 				string var = getNextVar();
 				vector<var_info> params;
@@ -796,7 +805,6 @@ FUNCTION	: "func" FUNC_PARAMS "->" TYPE TK_BSTART PUSH_LOOP BLOCK PUSH_LOOP {
 				string returnType = $4.transl;
 				
 				for (string param : split($2.transl, ';')) {
-					cout << param << endl;
 					vector<string> info = split(param, ' ');
 					
 					params.push_back({info[0], info[1], true, 0});
@@ -814,7 +822,7 @@ FUNCTION	: "func" FUNC_PARAMS "->" TYPE TK_BSTART PUSH_LOOP BLOCK PUSH_LOOP {
 					+ paramsType + ");");
 				$$.transl = "\t" + var + " = " + func + ";\n";
 				
-				funcs.push_back({func, params, returnType, $7.transl});
+				insertFunc(var, {func, params, returnType, $6.transl});
 			}
 			;
 			
@@ -840,6 +848,7 @@ FUNC_APPL	: TK_ID '(' FUNC_ARGS ')' {
 			;
 			
 FUNC_ARGS	: EXPR ',' FUNC_ARGS /*{ todo }*/
+			| EXPR {}
 			;
 
 EXPR 		: EXPR '+' EXPR {
@@ -1124,6 +1133,20 @@ var_info* findVarOnTop(string label) {
 
 void insertVar(string label, var_info info) {
 	varMap[varMap.size() - 1][label] = info;
+}
+
+func_info* findFunc(string var) {
+	if (funcMap.count(var)) {
+		return &funcMap[var];
+	}
+	
+	return nullptr;
+}
+
+void insertFunc(string var, func_info info) {
+	funcs.push_back(info);
+	
+	funcMap[var] = info;
 }
 
 void pushContext() {
