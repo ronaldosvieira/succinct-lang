@@ -186,7 +186,7 @@ void yyerror(string);
 %left '+' '-'
 %left '*' '/'
 %left "as"
-%right "++" "--" TK_ID
+%right "++" "--" TK_ID '('
 
 %%
 
@@ -843,12 +843,48 @@ FUNC_PARAMS	: TYPE TK_ID ',' FUNC_PARAMS {
 			;
 			
 FUNC_APPL	: TK_ID '(' FUNC_ARGS ')' {
+				var_info* info = findVar($1.label);
 				
+				if (info == nullptr) {
+					// throw compile error
+					yyerror("Variable " + $1.label + " not declared.");
+				}
+	
+				func_info* func = findFunc(info->name);
+				
+				if (func == nullptr) {
+					// throw compile error
+					yyerror("Function application on '" + $1.label 
+						+ "' non-func variable.");
+				}
+				
+				string var = getNextVar();
+				
+				$$.type = func->type;
+				$$.label = var;
+				
+				if (func->params.size() != $3.size) {
+					// throw compile error
+					yyerror("Function takes " + to_string(func->params.size()) 
+						+ " arguments, " + to_string($3.size) + " given.");
+				}
+				
+				decls.push_back($$.type + " " + $$.label + ";");
+				$$.transl = $3.transl + "\t" + var + " = " + info->name 
+					+ "(" + $3.label + ");\n";
 			}
 			;
 			
-FUNC_ARGS	: EXPR ',' FUNC_ARGS /*{ todo }*/
-			| EXPR {}
+FUNC_ARGS	: EXPR ',' FUNC_ARGS {
+				$$.transl = $1.transl + $3.transl;
+				$$.label = $1.label + ", " + $3.label;
+				$$.size = $3.size + 1;
+			}
+			| EXPR {
+				$$.transl = $1.transl;
+				$$.label = $1.label;
+				$$.size = 1;
+			}
 			;
 
 EXPR 		: EXPR '+' EXPR {
@@ -1026,7 +1062,7 @@ VALUE_OR_ID	: TK_NUM {
 					yyerror("Variable " + $1.label + " not declared.");
 				}
 			}
-			| FUNC_APPL /*{ todo }*/
+			| FUNC_APPL
 			;
 			
 TYPE		: TK_INT_TYPE
