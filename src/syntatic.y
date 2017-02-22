@@ -425,7 +425,7 @@ LOOP		: "while" EXPR TK_BSTART BLOCK {
 					string var = getNextVar();
 					loop_info* loop = getLoop();
 					
-					decls.push_back("\tint " + var + ";");
+					decls.push_back("int " + var + ";");
 					
 					$$.transl = loop->start + ":\n" 
 						+ loop->increment + ":" + $2.transl
@@ -478,9 +478,9 @@ WRITE		: "write" WRITE_ARGS {
 			}
 			;
 		
-WRITE_ARGS	: WRITE_ARG WRITE_ARGS {
-				$$.transl = $1.transl + $2.transl;
-				$$.label = $1.label + $2.label;
+WRITE_ARGS	: WRITE_ARG ',' WRITE_ARGS {
+				$$.transl = $1.transl + $3.transl;
+				$$.label = $1.label + $3.label;
 			}
 			| WRITE_ARG {
 				$$.transl = $1.transl;
