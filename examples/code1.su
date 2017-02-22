@@ -116,3 +116,9 @@ if z == 1: {
 string aaaa;
 
 int vet[5][1][4];
+
+func foo int a, int b -> int: {
+	return a + b;
+}
+
+write foo(1, 2) " ";
