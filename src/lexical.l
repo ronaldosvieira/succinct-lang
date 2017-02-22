@@ -80,6 +80,7 @@ COMML	    "//"[^\n]*
 "bool"      { yylval.transl = yytext; return TK_BOOL_TYPE; }
 "func"      { yylval.transl = yytext; return TK_FUNC_TYPE; }
 "const"     { yylval.transl = yytext; return TK_CONST; }
+"auto"      { yylval.transl = yytext; return TK_AUTO_TYPE; }
 
 [(){}[\];,]	{ return *yytext; }
 

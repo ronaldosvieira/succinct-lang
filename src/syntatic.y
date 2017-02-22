@@ -159,7 +159,7 @@ void yyerror(string);
 %token TK_AS "as"
 %token TK_WRITE "write"
 %token TK_CONST "const"
-%token TK_MAIN TK_ID TK_INT_TYPE TK_FLOAT_TYPE TK_CHAR_TYPE
+%token TK_MAIN TK_ID TK_INT_TYPE TK_FLOAT_TYPE TK_CHAR_TYPE TK_AUTO_TYPE
 %token TK_DOUBLE_TYPE TK_LONG_TYPE TK_STRING_TYPE TK_BOOL_TYPE
 %token TK_FIM TK_ERROR
 %token TK_ENDL
@@ -547,8 +547,18 @@ DECLARATION : TYPE TK_ID {
 			| "const" TYPE TK_ID {
 				yyerror("Constant variables must be given a value at its declaration.");
 			}
+			| TK_AUTO_TYPE TK_ID {
+				yyerror("Auto variables must be given a value at its declaration.");
+			}
+			| "const" TK_AUTO_TYPE TK_ID {
+				stringstream ss;
+				ss << "This is wrong in many levels. "
+					<< "Both auto and const variables must be given a value "
+					<< "at its declaration.";
+					
+				yyerror(ss.str());
+			}
 			;
-
 
 DIMENSION:	DIMENSION '[' EXPR ']' {
 				if ($3.type != "int") {
@@ -826,6 +836,46 @@ DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
 					// throw compile error
 					yyerror("Variable " + $3.label + " redeclared.");
 				}
+			}
+			| TK_AUTO_TYPE TK_ID '=' EXPR {
+				var_info* info = findVarOnTop($2.label);
+				
+				if (info != nullptr) {
+					// throw compile error
+					yyerror("Variable " + $2.label + " redeclared.");
+				}
+				
+				string resType = opMap[$1.transl + "=" + $4.type];
+				
+				if (resType.empty()) {
+					yyerror("Magic variable assignment with incompatible target type "
+						+ $4.type + ".");
+				}
+				
+				$$.transl = $4.transl;
+				
+				insertVar($2.label, 
+						{$4.type, $4.label, true, $4.size});
+			}
+			| "const" TK_AUTO_TYPE TK_ID '=' EXPR {
+				var_info* info = findVarOnTop($2.label);
+				
+				if (info != nullptr) {
+					// throw compile error
+					yyerror("Variable " + $2.label + " redeclared.");
+				}
+				
+				string resType = opMap[$1.transl + ":=" + $4.type];
+				
+				if (resType.empty()) {
+					yyerror("Magic variable assignment with incompatible target type "
+						+ $4.type + ".");
+				}
+				
+				$$.transl = $4.transl;
+				
+				insertVar($2.label, 
+						{$4.type, $4.label, false, $4.size});
 			}
 			;
 			
@@ -1221,6 +1271,10 @@ int main(int argc, char* argv[]) {
 void yyerror(string MSG) {
 	cout << "Error on line " << line << ": " << MSG << endl;
 	exit (0);
+}
+
+void yywarn(string MSG) {
+	cout << "Warning on line " << line << ": " << MSG << endl;
 }
 
 var_info* findVar(string label) {

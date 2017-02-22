@@ -57,6 +57,12 @@ char = char char simple-attrib
 char = bool char simple-attrib
 bool = bool bool simple-attrib
 string = string string string-attrib
+auto = int int simple-attrib
+auto = float float simple-attrib
+auto = double double simple-attrib
+auto = char char simple-attrib
+auto = bool bool simple-attrib
+auto = string string simple-attrib
 int rel int int simple-relational
 int rel float float simple-relational
 int rel double double simple-relational
