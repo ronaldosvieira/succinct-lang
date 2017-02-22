@@ -64,6 +64,7 @@ COMML	    "//"[^\n]*
 "all"       { return TK_ALL; }
 
 "write"     { return TK_WRITE; }
+"typeof"    { return TK_TYPEOF; }
 "endl"      { return TK_ENDL; }
 "as"        { return TK_AS; }
 

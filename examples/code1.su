@@ -124,3 +124,5 @@ func foo int a, int b -> int: {
 write foo(1, 2), endl;
 
 auto mm = "aaaa";
+
+write typeof mm;

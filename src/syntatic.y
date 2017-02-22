@@ -180,6 +180,7 @@ void yyerror(string);
 %token TK_ARROW "->"
 %token TK_FUNC_TYPE "func"
 %token TK_RET "return"
+%token TK_TYPEOF "typeof"
 
 %start S
 
@@ -189,6 +190,7 @@ void yyerror(string);
 %left '+' '-'
 %left '*' '/'
 %left "as"
+%left "typeof"
 %right "++" "--" TK_ID '('
 
 %%
@@ -298,6 +300,7 @@ STATEMENT 	: EXPR ';' {
 			| FUNC_CTRL ';' {
 				$$.transl = $1.transl;
 			}
+			;
 			
 LOOP_CTRL	: "break" {
 				loop_info* loop = getLoop();
@@ -1128,6 +1131,16 @@ EXPR 		: EXPR '+' EXPR {
 					// throw compiler error
 					yyerror("Invalid cast from " + $1.type + " to " + $3.transl + ".");
 				}
+			}
+			| "typeof" EXPR {
+				string var = getNextVar();
+				
+				$$.type = "string";
+				$$.label = var;
+				
+				decls.push_back("char* " + var + ";");
+				$$.transl = $2.transl + "\t" + var + " = (char*) \"" 
+					+ $2.type + "\";\n";
 			}
 			| INCR_OR_DECR
 			| FUNC_APPL
