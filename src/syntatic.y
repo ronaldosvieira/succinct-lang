@@ -275,6 +275,7 @@ STATEMENT 	: EXPR ';' {
 			| LOOP_CTRL ';' {
 				$$.transl = $1.transl;
 			}
+			| FUNCTION
 			
 LOOP_CTRL	: "break" {
 				loop_info* loop = getLoop();
@@ -796,33 +797,31 @@ DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
 			}
 			;
 			
-FUNCTION	: "func" PUSH_SCOPE FUNC_PARAMS "->" TYPE TK_BSTART BLOCK POP_SCOPE {
+FUNCTION	: "func" PUSH_SCOPE TK_ID FUNC_PARAMS "->" TYPE 
+					TK_BSTART BLOCK POP_SCOPE {
 				string func = getNextFunc();
-				string var = getNextVar();
 				vector<var_info> params;
 				string paramsType = "";
 				
-				string returnType = $5.transl;
+				string returnType = $6.transl;
+				if (returnType == "string") returnType = "char*";
 				
-				for (string param : split($3.transl, ';')) {
+				for (string param : split($4.transl, ';')) {
 					vector<string> info = split(param, ' ');
 					
 					params.push_back({info[0], info[1], true, 0});
 				}
-	
-				$$.type = "func";
-				$$.label = var;
 				
 				for (int i = 0; i < params.size(); ++i) {
-					paramsType += params[i].type;
+					if (params[i].type == "string") paramsType += "char*";
+					else paramsType += params[i].type;
+
 					if (i < params.size() - 1) paramsType += ", ";
 				}
 				
-				decls.push_back(returnType + " (*" + var + ")(" 
-					+ paramsType + ");");
-				$$.transl = "\t" + var + " = " + func + ";\n";
+				$$.transl = "";
 				
-				insertFunc(var, {func, params, returnType, $7.transl});
+				insertFunc($3.label, {func, params, returnType, $8.transl});
 			}
 			;
 			
@@ -852,14 +851,8 @@ FUNC_PARAM	: TYPE TK_ID {
 			}
 			
 FUNC_APPL	: TK_ID '(' FUNC_ARGS ')' {
-				var_info* info = findVar($1.label);
 				$$.transl = $3.transl;
-				
-				if (info == nullptr) {
-					yyerror("Variable " + $1.label + " not declared.");
-				}
-	
-				func_info* func = findFunc(info->name);
+				func_info* func = findFunc($1.label);
 				
 				if (func == nullptr) {
 					yyerror("Function application on '" + $1.label 
@@ -921,7 +914,7 @@ FUNC_APPL	: TK_ID '(' FUNC_ARGS ')' {
 				}
 				
 				decls.push_back($$.type + " " + $$.label + ";");
-				$$.transl += "\t" + var + " = " + info->name 
+				$$.transl += "\t" + var + " = " + func->label 
 					+ "(" + argsStr + ");\n";
 			}
 			;
@@ -1055,7 +1048,6 @@ EXPR 		: EXPR '+' EXPR {
 				}
 			}
 			| INCR_OR_DECR
-			| FUNCTION
 			| FUNC_APPL
 			| VALUE_OR_ID
 			;
@@ -1123,7 +1115,6 @@ TYPE		: TK_INT_TYPE
 			| TK_CHAR_TYPE
 			| TK_STRING_TYPE
 			| TK_BOOL_TYPE
-			| TK_FUNC_TYPE
 			;
 
 %%
