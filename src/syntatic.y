@@ -50,6 +50,8 @@ int tempGen = 0;
 int tempLabel = 0;
 int tempFunc = 0;
 
+int funcStack = 0;
+
 // declarações de variáveis
 vector<string> decls;
 
@@ -177,6 +179,7 @@ void yyerror(string);
 %token TK_ALL "all"
 %token TK_ARROW "->"
 %token TK_FUNC_TYPE "func"
+%token TK_RET "return"
 
 %start S
 
@@ -251,6 +254,22 @@ POP_LOOP:	{
 				$$.transl = "";
 				$$.label = "";
 			};
+			
+PUSH_FUNC:	{
+				pushContext();
+				++funcStack;
+				
+				$$.transl = "";
+				$$.label = "";
+			};
+
+POP_FUNC:	{
+				popContext();
+				--funcStack;
+				
+				$$.transl = "";
+				$$.label = "";
+			};
 
 BLOCK		: PUSH_SCOPE '{' STATEMENTS '}' POP_SCOPE {
 				$$.transl = $3.transl;
@@ -276,6 +295,9 @@ STATEMENT 	: EXPR ';' {
 				$$.transl = $1.transl;
 			}
 			| FUNCTION
+			| FUNC_CTRL ';' {
+				$$.transl = $1.transl;
+			}
 			
 LOOP_CTRL	: "break" {
 				loop_info* loop = getLoop();
@@ -311,6 +333,16 @@ LOOP_CTRL	: "break" {
 					$$.transl = "\tgoto " + loop->increment + ";\n";
 				} else {
 					yyerror("Continue statements should be used inside a loop.");
+				}
+			}
+			;
+			
+FUNC_CTRL	: "return" EXPR {
+				if (funcStack > 0) {
+					// todo: validar tipo do retorno
+					$$.transl = $2.transl + "\treturn " + $2.label + ";\n";
+				} else {
+					yyerror("Return statements should be used inside a function.");
 				}
 			}
 			;
@@ -797,8 +829,8 @@ DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
 			}
 			;
 			
-FUNCTION	: "func" PUSH_SCOPE TK_ID FUNC_PARAMS "->" TYPE 
-					TK_BSTART BLOCK POP_SCOPE {
+FUNCTION	: "func" PUSH_FUNC TK_ID FUNC_PARAMS "->" TYPE 
+					TK_BSTART BLOCK POP_FUNC {
 				string func = getNextFunc();
 				vector<var_info> params;
 				string paramsType = "";

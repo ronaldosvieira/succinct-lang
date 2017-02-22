@@ -67,6 +67,8 @@ COMML	    "//"[^\n]*
 "endl"      { return TK_ENDL; }
 "as"        { return TK_AS; }
 
+"return"    { return TK_RET; }
+
 ":"         { return TK_BSTART; }
 
 "int"		{ yylval.transl = yytext; return TK_INT_TYPE; }
