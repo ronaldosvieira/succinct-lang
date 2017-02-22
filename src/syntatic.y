@@ -853,6 +853,7 @@ FUNC_PARAM	: TYPE TK_ID {
 			
 FUNC_APPL	: TK_ID '(' FUNC_ARGS ')' {
 				var_info* info = findVar($1.label);
+				$$.transl = $3.transl;
 				
 				if (info == nullptr) {
 					yyerror("Variable " + $1.label + " not declared.");
@@ -875,6 +876,8 @@ FUNC_APPL	: TK_ID '(' FUNC_ARGS ')' {
 					args.push_back({info[0], info[1], true, 0});
 				}
 				
+				string resType, tempOp = "=";
+				
 				// valida qtd de argumentos passados
 				if (func->params.size() != args.size()) {
 					yyerror("Function takes " + to_string(func->params.size()) 
@@ -886,11 +889,23 @@ FUNC_APPL	: TK_ID '(' FUNC_ARGS ')' {
 					var_info* param = &func->params[i];
 					var_info* arg = &args[i];
 					
-					// todo: lidar com conversão
 					if (param->type != arg->type) {
-						yyerror("Argument " + to_string(i + 1) 
-							+ " of function '" + $1.label + "' expects " 
-							+ param->type + ", " + arg->type + " given.");
+						do {
+							resType = opMap[param->type + tempOp + arg->type];
+							tempOp = typeMap[tempOp];
+						} while (resType.empty() && !tempOp.empty());
+						
+						if (resType.empty()) {
+							yyerror("Argument " + to_string(i + 1) 
+								+ " of function '" + $1.label + "' expects " 
+								+ param->type + ", " + arg->type + " given.");
+						}
+						
+						string var2 = getNextVar();
+						decls.push_back(param->type + " " + var2 + ";");
+
+						$$.transl += "\t" + var2 + " = (" + param->type 
+							+ ") " + arg->name + ";\n";
 					}
 				}
 				
@@ -906,7 +921,7 @@ FUNC_APPL	: TK_ID '(' FUNC_ARGS ')' {
 				}
 				
 				decls.push_back($$.type + " " + $$.label + ";");
-				$$.transl = $3.transl + "\t" + var + " = " + info->name 
+				$$.transl += "\t" + var + " = " + info->name 
 					+ "(" + argsStr + ");\n";
 			}
 			;
