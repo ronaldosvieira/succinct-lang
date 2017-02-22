@@ -123,6 +123,8 @@ func foo int a, int b -> int: {
 
 write foo(1, 2), endl;
 
-auto mm = "aaaa";
+auto m = "aaaa";
 
-write typeof mm;
+write typeof m;
+
+m is string;

@@ -116,3 +116,9 @@ bool cast double int null
 bool cast char int null
 bool cast bool int null
 bool cast float int null
+int is type bool type-comparison
+float is type bool type-comparison
+double is type bool type-comparison
+char is type bool type-comparison
+bool is type bool type-comparison
+string is type bool type-comparison

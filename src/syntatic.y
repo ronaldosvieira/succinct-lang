@@ -143,6 +143,7 @@ node doSimpleLogicOp(string op, node left, node right);
 node doStringConcat(string op, node left, node right);
 node doSimpleAttrib(string op, node left, node right);
 node doStringAttrib(string op, node left, node right);
+node doTypeComparison(string op, node left, node right);
 node fallback(string op, node left, node right);
   
 int yylex(void);
@@ -181,6 +182,7 @@ void yyerror(string);
 %token TK_FUNC_TYPE "func"
 %token TK_RET "return"
 %token TK_TYPEOF "typeof"
+%token TK_IS "is"
 
 %start S
 
@@ -189,7 +191,7 @@ void yyerror(string);
 %left "and" "or" "xor"
 %left '+' '-'
 %left '*' '/'
-%left "as"
+%left "as" "is"
 %left "typeof"
 %right "++" "--" TK_ID '('
 
@@ -1142,6 +1144,11 @@ EXPR 		: EXPR '+' EXPR {
 				$$.transl = $2.transl + "\t" + var + " = (char*) \"" 
 					+ $2.type + "\";\n";
 			}
+			| EXPR "is" TYPE {
+				strategy strat = getStrategy("is", $1.type, $3.type);
+				
+				$$ = strat("is", $1, $3);
+			}
 			| INCR_OR_DECR
 			| FUNC_APPL
 			| VALUE_OR_ID
@@ -1271,6 +1278,7 @@ int main(int argc, char* argv[]) {
 	strategyMap["string-concat"] = doStringConcat;
 	strategyMap["simple-attrib"] = doSimpleAttrib;
 	strategyMap["string-attrib"] = doStringAttrib;
+	strategyMap["type-comparison"] = doTypeComparison;
 	
 	// insert global context
 	map<string, var_info> globalContext;
@@ -1641,6 +1649,22 @@ node doStringAttrib(string op, node left, node right) {
 				+ info->type + " and " + right.type + ".");
 		}
 	}
+	
+	return result;
+}
+
+node doTypeComparison(string op, node left, node right) {
+	node result;
+	string var = getNextVar();
+	
+	result.type = "bool";
+	decls.push_back("int " + var + ";");
+	
+	bool isSameType = left.type == right.transl;
+	
+	result.transl = left.transl + 
+	"\t" + var + " = " + to_string(isSameType? 1 : 0) + ";\n";
+	result.label = var;
 	
 	return result;
 }

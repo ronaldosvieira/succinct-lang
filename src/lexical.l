@@ -65,6 +65,7 @@ COMML	    "//"[^\n]*
 
 "write"     { return TK_WRITE; }
 "typeof"    { return TK_TYPEOF; }
+"is"        { return TK_IS; }
 "endl"      { return TK_ENDL; }
 "as"        { return TK_AS; }
 
@@ -72,14 +73,46 @@ COMML	    "//"[^\n]*
 
 ":"         { return TK_BSTART; }
 
-"int"		{ yylval.transl = yytext; return TK_INT_TYPE; }
-"float"		{ yylval.transl = yytext; return TK_FLOAT_TYPE; }
-"double"	{ yylval.transl = yytext; return TK_DOUBLE_TYPE; }
-"long"		{ yylval.transl = yytext; return TK_LONG_TYPE; }
-"char"		{ yylval.transl = yytext; return TK_CHAR_TYPE; }
-"string"	{ yylval.transl = yytext; return TK_STRING_TYPE; }
-"bool"      { yylval.transl = yytext; return TK_BOOL_TYPE; }
-"func"      { yylval.transl = yytext; return TK_FUNC_TYPE; }
+"int"		{ 
+                yylval.transl = yytext; 
+                yylval.type = "type";
+                return TK_INT_TYPE;
+            }
+"float"		{ 
+                yylval.transl = yytext; 
+                yylval.type = "type";
+                return TK_FLOAT_TYPE;
+            }
+"double"	{ 
+                yylval.transl = yytext; 
+                yylval.type = "type";
+                return TK_DOUBLE_TYPE;
+            }
+"long"		{ 
+                yylval.transl = yytext; 
+                yylval.type = "type";
+                return TK_LONG_TYPE;
+            }
+"char"		{ 
+                yylval.transl = yytext; 
+                yylval.type = "type";
+                return TK_CHAR_TYPE;
+            }
+"string"	{ 
+                yylval.transl = yytext; 
+                yylval.type = "type";
+                return TK_STRING_TYPE;
+            }
+"bool"      { 
+                yylval.transl = yytext; 
+                yylval.type = "type";
+                return TK_BOOL_TYPE;
+            }
+"func"      { 
+                yylval.transl = yytext; 
+                yylval.type = "type";
+                return TK_FUNC_TYPE;
+            }
 "const"     { yylval.transl = yytext; return TK_CONST; }
 "auto"      { yylval.transl = yytext; return TK_AUTO_TYPE; }
 
