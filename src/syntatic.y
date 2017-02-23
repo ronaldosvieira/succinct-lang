@@ -36,6 +36,13 @@ typedef struct loop_info {
 	string end; // nome da label do fim do bloco
 } loop_info;
 
+typedef struct func_info {
+	string label;
+	vector<var_info> params;
+	string type;
+	string transl;
+} func_info;
+
 typedef function<node(string, node, node)> strategy;
 
 string type1, type2, op, typeRes, strategyName, value;
@@ -43,6 +50,10 @@ ifstream opMapFile, padraoMapFile;
 
 int tempGen = 0;
 int tempLabel = 0;
+int tempFunc = 0;
+
+int funcStack = 0;
+
 bool insert_list = false;
 int count_vector = 0;
 
@@ -58,11 +69,17 @@ vector<string> decls;
 // desalocações de variáveis
 vector<string> desacs;
 
+// declarações de funções
+vector<func_info> funcs;
+
 // pilha de mapas de variável
 vector<map<string, var_info>> varMap;
 
 // pilha de labels de loops
 vector<loop_info> loopMap;
+
+// mapa de funções
+map<string, func_info> funcMap;
 
 // mapa de tipos
 map<string, string> typeMap;
@@ -85,6 +102,9 @@ string getNextVar();
 // obtém o próximo nome de label disponível
 string getNextLabel();
 
+// otém o próximo nome de função disponível
+string getNextFunc();
+
 // inicia um novo contexto
 void pushContext();
 
@@ -94,8 +114,17 @@ void popContext();
 // procura uma variável na pilha de contextos
 var_info* findVar(string label);
 
+// procura uma variável no primeiro contexto da pilha de contextos
+var_info* findVarOnTop(string label);
+
 // insere uma nova variável no contexto atual
 void insertVar(string label, var_info info);
+
+// procura uma função no mapa de funções
+func_info* findFunc(string var);
+
+// insere uma nova função no mapa de funções
+void insertFunc(string var, func_info info);
 
 // registra um novo loop
 void pushLoop();
@@ -108,6 +137,12 @@ loop_info* getOuterLoop();
 
 // remove o loop atual
 void popLoop();
+
+// separar uma string
+template<typename Out>
+void split(const string &s, char delim, Out result);
+
+vector<string> split(const string &s, char delim);
 
 // obtém a estratégia para os tipos e operação especificadas
 strategy getStrategy(string op, string type1, string type2);
@@ -122,6 +157,9 @@ node doSimpleLogicOp(string op, node left, node right);
 node doStringConcat(string op, node left, node right);
 node doSimpleAttrib(string op, node left, node right);
 node doStringAttrib(string op, node left, node right);
+node doTypeComparison(string op, node left, node right);
+node doStringComparison(string op, node left, node right);
+node doSimpleConversion(string op, node left, node right);
 node fallback(string op, node left, node right);
   
 int yylex(void);
@@ -138,7 +176,7 @@ void yyerror(string);
 %token TK_AS "as"
 %token TK_WRITE "write"
 %token TK_CONST "const"
-%token TK_MAIN TK_ID TK_INT_TYPE TK_FLOAT_TYPE TK_CHAR_TYPE
+%token TK_MAIN TK_ID TK_INT_TYPE TK_FLOAT_TYPE TK_CHAR_TYPE TK_AUTO_TYPE
 %token TK_DOUBLE_TYPE TK_LONG_TYPE TK_STRING_TYPE TK_BOOL_TYPE
 %token TK_FIM TK_ERROR
 %token TK_ENDL
@@ -156,6 +194,11 @@ void yyerror(string);
 %token TK_BREAK "break"
 %token TK_CONT "continue"
 %token TK_ALL "all"
+%token TK_ARROW "->"
+%token TK_FUNC_TYPE "func"
+%token TK_RET "return"
+%token TK_TYPEOF "typeof"
+%token TK_IS "is"
 
 %start S
 
@@ -164,8 +207,9 @@ void yyerror(string);
 %left "and" "or" "xor"
 %left '+' '-'
 %left '*' '/'
-%left "as"
-%nonassoc "++" "--"
+%left "as" "is"
+%left "typeof"
+%right "++" "--" TK_ID '('
 
 %%
 
@@ -189,7 +233,20 @@ S 			: STATEMENTS {
 					cout << decl << endl;
 				}
 				
-				cout << endl << $1.transl; 
+				cout << endl;
+				
+				for (func_info func : funcs) {
+					cout << func.type + " " + func.label + "(";
+					
+					for (int i = 0; i < func.params.size(); ++i) {
+						cout << func.params[i].type + " " + func.params[i].name;
+						if (i < func.params.size() - 1) cout << ", ";
+					}
+					
+					cout << ") {\n" + func.transl + "}\n" << endl;
+				}
+				
+				cout << "int main(void) {" << endl << $1.transl;
 				
 				for (string desac : desacs) {
 					cout << "\tfree(" << desac << ");" << endl;
@@ -235,6 +292,22 @@ POP_LOOP:	{
 				$$.transl = "";
 				$$.label = "";
 			};
+			
+PUSH_FUNC:	{
+				pushContext();
+				++funcStack;
+				
+				$$.transl = "";
+				$$.label = "";
+			};
+
+POP_FUNC:	{
+				popContext();
+				--funcStack;
+				
+				$$.transl = "";
+				$$.label = "";
+			};
 
 BLOCK		: PUSH_SCOPE '{' STATEMENTS '}' POP_SCOPE {
 				$$.transl = $3.transl;
@@ -259,6 +332,11 @@ STATEMENT 	: EXPR ';' {
 			| LOOP_CTRL ';' {
 				$$.transl = $1.transl;
 			}
+			| FUNCTION
+			| FUNC_CTRL ';' {
+				$$.transl = $1.transl;
+			}
+			;
 			
 LOOP_CTRL	: "break" {
 				loop_info* loop = getLoop();
@@ -298,12 +376,22 @@ LOOP_CTRL	: "break" {
 			}
 			;
 			
+FUNC_CTRL	: "return" EXPR {
+				if (funcStack > 0) {
+					// todo: validar tipo do retorno
+					$$.transl = $2.transl + "\treturn " + $2.label + ";\n";
+				} else {
+					yyerror("Return statements should be used inside a function.");
+				}
+			}
+			;
+			
 CONTROL		: "if" EXPR TK_BSTART BLOCK {
 				if ($2.type == "bool") {
 					string var = getNextVar();
 					string end = getNextLabel();
 					
-					decls.push_back("\tint " + var + ";");
+					decls.push_back("int " + var + ";");
 					
 					$$.transl = $2.transl + 
 						"\t" + var + " = !" + $2.label + ";\n" +
@@ -324,7 +412,7 @@ CONTROL		: "if" EXPR TK_BSTART BLOCK {
 				string var = getNextVar();
 				string endif = getNextLabel();
 				
-				decls.push_back("\tint " + var + ";");
+				decls.push_back("int " + var + ";");
 				
 				$$.transl = $2.transl + 
 					"\t" + var + " = !" + $2.label + ";\n" +
@@ -340,7 +428,7 @@ IF_PREDS	: "elif" EXPR TK_BSTART BLOCK {
 				string var = getNextVar();
 				string endelif = getNextLabel();
 				
-				decls.push_back("\tint " + var + ";");
+				decls.push_back("int " + var + ";");
 				
 				$$.transl = $2.transl + 
 					"\t" + var + " = !" + $2.label + ";\n" +
@@ -353,7 +441,7 @@ IF_PREDS	: "elif" EXPR TK_BSTART BLOCK {
 				string var = getNextVar();
 				string endelif = getNextLabel();
 				
-				decls.push_back("\tint " + var + ";");
+				decls.push_back("int " + var + ";");
 				
 				$$.transl = $2.transl + 
 					"\t" + var + " = !" + $2.label + ";\n" +
@@ -376,7 +464,7 @@ LOOP		: "while" EXPR TK_BSTART BLOCK {
 					string var = getNextVar();
 					loop_info* loop = getLoop();
 					
-					decls.push_back("\tint " + var + ";");
+					decls.push_back("int " + var + ";");
 					
 					$$.transl = loop->start + ":\n" 
 						+ loop->increment + ":" + $2.transl
@@ -408,7 +496,7 @@ LOOP		: "while" EXPR TK_BSTART BLOCK {
 					string var = getNextVar();
 					loop_info* loop = getLoop();
 					
-					decls.push_back("\tint " + var + ";");
+					decls.push_back("int " + var + ";");
 					
 					$$.transl = $2.transl + loop->start + ":" + $4.transl + 
 						"\t" + var + " = !" + $4.label + ";\n" +
@@ -429,9 +517,9 @@ WRITE		: "write" WRITE_ARGS {
 			}
 			;
 		
-WRITE_ARGS	: WRITE_ARG WRITE_ARGS {
-				$$.transl = $1.transl + $2.transl;
-				$$.label = $1.label + $2.label;
+WRITE_ARGS	: WRITE_ARG ',' WRITE_ARGS {
+				$$.transl = $1.transl + $3.transl;
+				$$.label = $1.label + $3.label;
 			}
 			| WRITE_ARG {
 				$$.transl = $1.transl;
@@ -459,14 +547,14 @@ DECL_OR_ATTR: DECLARATION
 			;
 			
 DECLARATION : TYPE TK_ID {
-				var_info* info = findVar($2.label);
+				var_info* info = findVarOnTop($2.label);
 				
 				if (info == nullptr) {
 					string var = getNextVar();
 					
 					insertVar($2.label, {$1.transl, var, true, 0});
 					
-					decls.push_back("\t" + $1.transl + " " + var + ";");
+					decls.push_back($1.transl + " " + var + ";");
 					$$.transl = "\t" + var + " = " + 
 						padraoMap[$1.transl] + ";\n";
 					$$.label = var;
@@ -477,10 +565,9 @@ DECLARATION : TYPE TK_ID {
 				}
 			}
 			| TYPE TK_ID DIMENSION {
-
 				insert_list = true;
 
-				var_info* info = findVar($2.label);
+				var_info* info = findVarOnTop($2.label);
 				
 				if (info == nullptr) {
 				 	string var = getNextVar();
@@ -518,18 +605,28 @@ DECLARATION : TYPE TK_ID {
 				} else {
 					yyerror("Variable " + $2.label + " redeclared.");
 				}
-				
 			}
 			| "const" TYPE TK_ID {
 				yyerror("Constant variables must be given a value at its declaration.");
 			}
+			| TK_AUTO_TYPE TK_ID {
+				yyerror("Auto variables must be given a value at its declaration.");
+			}
+			| "const" TK_AUTO_TYPE TK_ID {
+				stringstream ss;
+				ss << "This is wrong in many levels. "
+					<< "Both auto and const variables must be given a value "
+					<< "at its declaration.";
+					
+				yyerror(ss.str());
+			}
 			;
-
 
 DIMENSION:	DIMENSION '[' EXPR ']'
 			{
 				if($3.type != "int") {
-					yyerror("Erro na linha: X. Esperava um valor do tipo \"int\" para definir o tamanho de um vetor.");
+					yyerror("List dimensions must be defined by integers, "
+						<< $3.type << " given.");
 				}
 
 				string var = getNextVar();
@@ -540,7 +637,8 @@ DIMENSION:	DIMENSION '[' EXPR ']'
 			}
 			| '[' EXPR ']' {
 				if($2.type != "int") {
-					yyerror("Erro na linha: X. Esperava um valor do tipo \"int\" para definir o tamanho de um vetor.");
+					yyerror("List dimensions must be defined by integers, "
+						<< $2.type << " given.");
 				}
 				index_temp.push_back($2.label);
 				$$.transl = $2.transl;
@@ -550,7 +648,8 @@ DIMENSION:	DIMENSION '[' EXPR ']'
 VECTOR_INDEX:	VECTOR_INDEX '[' EXPR ']'
 			{
 				if($3.type != "int") {
-					yyerror("Erro na linha: X. Esperava um valor do tipo \"int\" para definir o tamanho de um vetor.");
+					yyerror("List dimensions must be defined by integers, "
+						<< $3.type << " given.");
 				}
 
 				string var = getNextVar();
@@ -561,9 +660,11 @@ VECTOR_INDEX:	VECTOR_INDEX '[' EXPR ']'
 			}
 			| '[' EXPR ']' {
 				if($2.type != "int") {
-					yyerror("Erro na linha: X. Esperava um valor do tipo \"int\" para definir o tamanho de um vetor.");
+					yyerror("List dimensions must be defined by integers, "
+						<< $2.type << " given.");
 				}
 				index_temp.push_back($2.label);
+
 				$$.transl = $2.transl;
 				$$.label = $2.label;
 			}
@@ -625,7 +726,7 @@ INCREMENT	: "++" TK_ID {
 					}
 					
 					string var = getNextVar();
-					decls.push_back("\tint " + var + ";");
+					decls.push_back("int " + var + ";");
 					
 					// se incremento é permitido
 					if (info->type == "int") {
@@ -639,7 +740,7 @@ INCREMENT	: "++" TK_ID {
 						
 						// se conversão é permitida
 						if (resType.size()) {
-							decls.push_back("\t" + resType + " " + var2 + ";");
+							decls.push_back(resType + " " + var2 + ";");
 							
 							$$.type = $2.type;
 							$$.transl = "\t" + var + " = 1;\n\t" + 
@@ -658,7 +759,7 @@ INCREMENT	: "++" TK_ID {
 					yyerror("Variable " + $2.label + " not declared.");
 				}
 			}
-			/*| TK_ID "++" {
+			| TK_ID "++" {
 				var_info* info = findVar($1.label);
 				
 				if (info != nullptr) {
@@ -668,8 +769,8 @@ INCREMENT	: "++" TK_ID {
 					
 					string var = getNextVar();
 					string var2 = getNextVar();
-					decls.push_back("\tint " + var + ";");
-					decls.push_back("\t" + info->type + " " + var2 + ";");
+					decls.push_back("int " + var + ";");
+					decls.push_back(info->type + " " + var2 + ";");
 					
 					// se incremento é permitido
 					if (info->type == "int") {
@@ -701,7 +802,7 @@ INCREMENT	: "++" TK_ID {
 					// throw compile error
 					yyerror("Variable " + $1.label + " not declared.");
 				}
-			}*/
+			}
 			;
 			
 DECREMENT	: "--" TK_ID {
@@ -713,7 +814,7 @@ DECREMENT	: "--" TK_ID {
 					}
 					
 					string var = getNextVar();
-					decls.push_back("\tint " + var + ";");
+					decls.push_back("int " + var + ";");
 					
 					// se incremento é permitido
 					if (info->type == "int") {
@@ -727,7 +828,7 @@ DECREMENT	: "--" TK_ID {
 						
 						// se conversão é permitida
 						if (resType.size()) {
-							decls.push_back("\t" + resType + " " + var2 + ";\n");
+							decls.push_back(resType + " " + var2 + ";\n");
 							
 							$$.type = $2.type;
 							$$.transl = "\t" + var + " = 1;\n\t" + 
@@ -746,7 +847,7 @@ DECREMENT	: "--" TK_ID {
 					yyerror("Variable " + $2.label + " not declared.");
 				}
 			}
-			/*| TK_ID "--" {
+			| TK_ID "--" {
 				var_info* info = findVar($1.label);
 				
 				if (info != nullptr) {
@@ -756,8 +857,8 @@ DECREMENT	: "--" TK_ID {
 					
 					string var = getNextVar();
 					string var2 = getNextVar();
-					decls.push_back("\tint " + var + ";");
-					decls.push_back("\t" + info->type + " " + var2 + ";");
+					decls.push_back("int " + var + ";");
+					decls.push_back(info->type + " " + var2 + ";");
 					
 					// se incremento é permitido
 					if (info->type == "int") {
@@ -789,11 +890,11 @@ DECREMENT	: "--" TK_ID {
 					// throw compile error
 					yyerror("Variable " + $1.label + " not declared.");
 				}
-			}*/
+			}
 			;
 
 DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
-				var_info* info = findVar($2.label);
+				var_info* info = findVarOnTop($2.label);
 				
 				if (info != nullptr) {
 					// throw compile error
@@ -811,7 +912,7 @@ DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
 					
 					// se conversão é permitida
 					if (resType.size()) {
-						decls.push_back("\t" + $1.transl + " " + var + ";");
+						decls.push_back($1.transl + " " + var + ";");
 						
 						$$.transl = $4.transl + "\t" + 
 							var + " = (" + $1.transl + ") " + $4.label + 
@@ -826,7 +927,7 @@ DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
 				}
 			}
 			| "const" TYPE TK_ID '=' EXPR {
-				var_info* info = findVar($3.label);
+				var_info* info = findVarOnTop($3.label);
 				
 				if (info == nullptr) {
 					if ($5.type == $2.transl) {
@@ -840,7 +941,7 @@ DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
 						
 						// se conversão é permitida
 						if (resType.size()) {
-							decls.push_back("\t" + $2.transl + " " + var + ";");
+							decls.push_back($2.transl + " " + var + ";");
 							
 							$$.transl = $5.transl + "\t" + 
 								var + " = (" + $2.transl + ") " + $5.label + 
@@ -858,6 +959,180 @@ DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
 					// throw compile error
 					yyerror("Variable " + $3.label + " redeclared.");
 				}
+			}
+			| TK_AUTO_TYPE TK_ID '=' EXPR {
+				var_info* info = findVarOnTop($2.label);
+				
+				if (info != nullptr) {
+					// throw compile error
+					yyerror("Variable " + $2.label + " redeclared.");
+				}
+				
+				string resType = opMap[$1.transl + "=" + $4.type];
+				
+				if (resType.empty()) {
+					yyerror("Magic variable assignment with incompatible target type "
+						+ $4.type + ".");
+				}
+				
+				$$.transl = $4.transl;
+				
+				insertVar($2.label, 
+						{$4.type, $4.label, true, $4.size});
+			}
+			| "const" TK_AUTO_TYPE TK_ID '=' EXPR {
+				var_info* info = findVarOnTop($2.label);
+				
+				if (info != nullptr) {
+					// throw compile error
+					yyerror("Variable " + $2.label + " redeclared.");
+				}
+				
+				string resType = opMap[$1.transl + ":=" + $4.type];
+				
+				if (resType.empty()) {
+					yyerror("Magic variable assignment with incompatible target type "
+						+ $4.type + ".");
+				}
+				
+				$$.transl = $4.transl;
+				
+				insertVar($2.label, 
+						{$4.type, $4.label, false, $4.size});
+			}
+			;
+			
+FUNCTION	: "func" PUSH_FUNC TK_ID FUNC_PARAMS "->" TYPE 
+					TK_BSTART BLOCK POP_FUNC {
+				string func = getNextFunc();
+				vector<var_info> params;
+				string paramsType = "";
+				
+				string returnType = $6.transl;
+				if (returnType == "string") returnType = "char*";
+				
+				for (string param : split($4.transl, ';')) {
+					vector<string> info = split(param, ' ');
+					
+					params.push_back({info[0], info[1], true, 0});
+				}
+				
+				for (int i = 0; i < params.size(); ++i) {
+					if (params[i].type == "string") paramsType += "char*";
+					else paramsType += params[i].type;
+
+					if (i < params.size() - 1) paramsType += ", ";
+				}
+				
+				$$.transl = "";
+				
+				insertFunc($3.label, {func, params, returnType, $8.transl});
+			}
+			;
+			
+FUNC_PARAMS	: FUNC_PARAM ',' FUNC_PARAMS {
+				$$.transl = $1.transl + ";" + $3.transl;
+			}
+			| FUNC_PARAM {
+				$$.transl = $1.transl;
+			}
+			;
+			
+FUNC_PARAM	: TYPE TK_ID {
+				string var = getNextVar();
+				
+				decls.push_back($1.transl + " " + var + ";");
+				insertVar($2.label, {$1.transl, var, true, 0});
+				
+				$$.transl = $1.transl + " " + var;
+			}
+			| "const" TYPE TK_ID {
+				string var = getNextVar();
+				
+				decls.push_back($2.transl + " " + var + ";");
+				insertVar($3.label, {$2.transl, var, false, 0});
+				
+				$$.transl = $2.transl + " " + var;
+			}
+			
+FUNC_APPL	: TK_ID '(' FUNC_ARGS ')' {
+				$$.transl = $3.transl;
+				func_info* func = findFunc($1.label);
+				
+				if (func == nullptr) {
+					yyerror("Function application on '" + $1.label 
+						+ "' non-func variable.");
+				}
+				
+				vector<var_info> args;
+				string argsStr;
+				
+				// obtém lista de argumentos passados
+				for (string arg : split($3.label, ';')) {
+					vector<string> info = split(arg, ' ');
+					
+					args.push_back({info[0], info[1], true, 0});
+				}
+				
+				string resType, tempOp = "=";
+				
+				// valida qtd de argumentos passados
+				if (func->params.size() != args.size()) {
+					yyerror("Function takes " + to_string(func->params.size()) 
+						+ " arguments, " + to_string(args.size()) + " given.");
+				}
+				
+				// valida tipo dos argumentos passados
+				for (int i = 0; i < func->params.size(); ++i) {
+					var_info* param = &func->params[i];
+					var_info* arg = &args[i];
+					
+					if (param->type != arg->type) {
+						do {
+							resType = opMap[param->type + tempOp + arg->type];
+							tempOp = typeMap[tempOp];
+						} while (resType.empty() && !tempOp.empty());
+						
+						if (resType.empty()) {
+							yyerror("Argument " + to_string(i + 1) 
+								+ " of function '" + $1.label + "' expects " 
+								+ param->type + ", " + arg->type + " given.");
+						}
+						
+						string var2 = getNextVar();
+						decls.push_back(param->type + " " + var2 + ";");
+
+						$$.transl += "\t" + var2 + " = (" + param->type 
+							+ ") " + arg->name + ";\n";
+					}
+				}
+				
+				string var = getNextVar();
+				
+				$$.type = func->type;
+				$$.label = var;
+				
+				// monta lista de argumentos para cód. interm.
+				for (int i = 0; i < args.size(); ++i) {
+					argsStr += args[i].name;
+					if (i < args.size() - 1) argsStr += ", ";
+				}
+				
+				decls.push_back($$.type + " " + $$.label + ";");
+				$$.transl += "\t" + var + " = " + func->label 
+					+ "(" + argsStr + ");\n";
+			}
+			;
+			
+FUNC_ARGS	: EXPR ',' FUNC_ARGS {
+				$$.transl = $1.transl + $3.transl;
+				$$.label = $1.type + " " + $1.label + ";" + $3.label;
+				$$.size = $3.size + 1;
+			}
+			| EXPR {
+				$$.transl = $1.transl;
+				$$.label = $1.type + " " + $1.label;
+				$$.size = 1;
 			}
 			;
 
@@ -926,10 +1201,10 @@ EXPR 		: EXPR '+' EXPR {
 					getNextVar(), getNextVar()};
 				
 				if ($1.type == "bool" && $3.type == "bool") {
-					decls.push_back("\tint " + var[0] + ";");
-					decls.push_back("\tint " + var[1] + ";");
-					decls.push_back("\tint " + var[2] + ";");
-					decls.push_back("\tint " + var[3] + ";");
+					decls.push_back("int " + var[0] + ";");
+					decls.push_back("int " + var[1] + ";");
+					decls.push_back("int " + var[2] + ";");
+					decls.push_back("int " + var[3] + ";");
 					
 					$$.type = "bool";
 					$$.transl = $1.transl + $3.transl +
@@ -949,7 +1224,7 @@ EXPR 		: EXPR '+' EXPR {
 				if ($2.type == "bool") {
 					$$.type = $2.type;
 					$$.label = var;
-					decls.push_back("\tint " + var + ";");
+					decls.push_back("int " + var + ";");
 					$$.transl = $2.transl +
 						"\t" + var + " = !" + $2.label + ";\n";
 				} else {
@@ -963,19 +1238,24 @@ EXPR 		: EXPR '+' EXPR {
 				$$.transl = $2.transl;
 			}
 			| EXPR "as" TYPE {
-				string var = getNextVar();
-				string type = opMap[$3.transl + "cast" + $1.type];
+				strategy strat = getStrategy("cast", $1.type, $3.transl);
 				
-				if (type.size()) {
-					$$.type = $3.transl;
-					decls.push_back("\t" + type + " " + var + ";");
-					$$.transl = $1.transl + 
-						"\t" + var + " = (" + $3.transl + ") " + $1.label + ";\n";
-					$$.label = var;
-				} else {
-					// throw compiler error
-					yyerror("Invalid cast from " + $1.type + " to " + $3.transl + ".");
-				}
+				$$ = strat("cast", $1, $3);
+			}
+			| "typeof" EXPR {
+				string var = getNextVar();
+				
+				$$.type = "string";
+				$$.label = var;
+				
+				decls.push_back("char* " + var + ";");
+				$$.transl = $2.transl + "\t" + var + " = (char*) \"" 
+					+ $2.type + "\";\n";
+			}
+			| EXPR "is" TYPE {
+				strategy strat = getStrategy("is", $1.type, $3.type);
+				
+				$$ = strat("is", $1, $3);
 			}
 			| TK_ID VECTOR_INDEX {
 				/*
@@ -1031,6 +1311,7 @@ EXPR 		: EXPR '+' EXPR {
 				}
 			}
 			| INCR_OR_DECR
+			| FUNC_APPL
 			| VALUE_OR_ID
 			;
 			
@@ -1046,7 +1327,7 @@ VALUE_OR_ID	: TK_NUM {
 					value = to_string(stol(value));
 				}
 				
-				decls.push_back("\t" + $1.type + " " + var + ";");
+				decls.push_back($1.type + " " + var + ";");
 				$$.transl = "\t" + var + " = " + value + ";\n";
 				$$.label = var;
 			}
@@ -1055,21 +1336,21 @@ VALUE_OR_ID	: TK_NUM {
 				
 				$1.label = ($1.label == "true"? "1" : "0");
 				
-				decls.push_back("\tint " + var + ";");
+				decls.push_back("int " + var + ";");
 				$$.transl = "\t" + var + " = " + $1.label + ";\n";
 				$$.label = var;
 			}
 			| TK_CHAR {
 				string var = getNextVar();
 				
-				decls.push_back("\t" + $1.type + " " + var + ";");
+				decls.push_back($1.type + " " + var + ";");
 				$$.transl = "\t" + var + " = " + $1.label + ";\n";
 				$$.label = var;
 			}
 			| TK_STRING {
 				string var = getNextVar();
 				
-				decls.push_back("\tchar* " + var + ";");
+				decls.push_back("char* " + var + ";");
 				
 				$$.transl = "\t" + var + " = (char*) \"" + $1.label + "\";\n";
 				$$.size = $1.label.size();
@@ -1158,6 +1439,9 @@ int main(int argc, char* argv[]) {
 	strategyMap["string-concat"] = doStringConcat;
 	strategyMap["simple-attrib"] = doSimpleAttrib;
 	strategyMap["string-attrib"] = doStringAttrib;
+	strategyMap["type-comparison"] = doTypeComparison;
+	strategyMap["string-comparison"] = doStringComparison;
+	strategyMap["simple-conversion"] = doSimpleConversion;
 	
 	// insert global context
 	map<string, var_info> globalContext;
@@ -1169,8 +1453,12 @@ int main(int argc, char* argv[]) {
 }
 
 void yyerror(string MSG) {
-	cout << "Error: " << MSG << endl;
+	cout << "Error on line " << line << ": " << MSG << endl;
 	exit (0);
+}
+
+void yywarn(string MSG) {
+	cout << "Warning on line " << line << ": " << MSG << endl;
 }
 
 var_info* findVar(string label) {
@@ -1183,8 +1471,30 @@ var_info* findVar(string label) {
 	return nullptr;
 }
 
+var_info* findVarOnTop(string label) {
+	if (varMap[varMap.size() - 1].count(label)) {
+		return &varMap[varMap.size() - 1][label];
+	}
+	
+	return nullptr;
+}
+
 void insertVar(string label, var_info info) {
 	varMap[varMap.size() - 1][label] = info;
+}
+
+func_info* findFunc(string var) {
+	if (funcMap.count(var)) {
+		return &funcMap[var];
+	}
+	
+	return nullptr;
+}
+
+void insertFunc(string var, func_info info) {
+	funcs.push_back(info);
+	
+	funcMap[var] = info;
 }
 
 void pushContext() {
@@ -1229,6 +1539,26 @@ string getNextLabel() {
 	return "lbl" + to_string(tempLabel++);
 }
 
+string getNextFunc() {
+	return "func" + to_string(tempFunc++);
+}
+
+template<typename Out>
+void split(const string &s, char delim, Out result) {
+    stringstream ss;
+    ss.str(s);
+    string item;
+    while (getline(ss, item, delim)) {
+        *(result++) = item;
+    }
+}
+
+vector<string> split(const string &s, char delim) {
+    vector<string> elems;
+    split(s, delim, back_inserter(elems));
+    return elems;
+}
+
 strategy getStrategy(string op, string type1, string type2) {
 	string strategyName;
 	
@@ -1242,6 +1572,21 @@ strategy getStrategy(string op, string type1, string type2) {
 	}
 	
 	return strategyMap[strategyName];
+}
+
+string insertListOfFile() {
+	stringstream code;
+	string line;
+	ifstream myfile ("./util/list.dat");
+	if (myfile.is_open())
+	{
+		while ( getline (myfile,line) )
+		{
+			code << line << "\n";
+		}
+		myfile.close();
+	}
+	return code.str();
 }
 
 /********** strategies **********/
@@ -1267,7 +1612,7 @@ node doSimpleAritOp(string op, node left, node right) {
 	// if left needs conversion
 	if (left.type != resType) {
 		string var1 = getNextVar();
-		decls.push_back("\t" + resType + " " + var1 + ";");
+		decls.push_back(resType + " " + var1 + ";");
 		
 		result.transl += "\t" + var1 + " = (" + 
 			resType + ") " + left.label + ";\n";
@@ -1278,7 +1623,7 @@ node doSimpleAritOp(string op, node left, node right) {
 	// if right needs conversion
 	if (right.type != resType) {
 		string var1 = getNextVar();
-		decls.push_back("\t" + resType + " " + var1 + ";");
+		decls.push_back(resType + " " + var1 + ";");
 		
 		result.transl += "\t" + var1 + " = (" + 
 			resType + ") " + right.label + ";\n";
@@ -1287,7 +1632,7 @@ node doSimpleAritOp(string op, node left, node right) {
 	}
 	
 	result.type = resType;
-	decls.push_back("\t" + result.type + " " + var + ";");
+	decls.push_back(result.type + " " + var + ";");
 	
 	result.transl += "\t" + var + " = " + 
 		left.label + " " + op + " " + right.label + ";\n";
@@ -1316,7 +1661,7 @@ node doSimpleRelOp(string op, node left, node right) {
 	
 	if (left.type != resType) {
 		string var1 = getNextVar();
-		decls.push_back("\t" + resType + " " + var1 + ";");
+		decls.push_back(resType + " " + var1 + ";");
 		result.transl += "\t" + var1 + " = (" + 
 			resType + ") " + left.label + ";\n";
 		
@@ -1325,7 +1670,7 @@ node doSimpleRelOp(string op, node left, node right) {
 	
 	if (right.type != resType) {
 		string var1 = getNextVar();
-		decls.push_back("\t" + resType + " " + var1 + ";");
+		decls.push_back(resType + " " + var1 + ";");
 		result.transl += "\t" + var1 + " = (" + 
 			resType + ") " + right.label + ";\n";
 		
@@ -1333,7 +1678,7 @@ node doSimpleRelOp(string op, node left, node right) {
 	}
 
 	result.type = "bool";
-	decls.push_back("\tint " + var + ";");
+	decls.push_back("int " + var + ";");
 	result.transl += "\t" + var + " = " + 
 		left.label + " " + op + " " + right.label + ";\n";
 	result.label = var;
@@ -1357,7 +1702,7 @@ node doSimpleLogicOp(string op, node left, node right) {
 	}
 	
 	result.type = "bool";
-	decls.push_back("\tint " + var + ";");
+	decls.push_back("int " + var + ";");
 	result.transl = left.transl + right.transl + 
 	"\t" + var + " = " + left.label + " " + op + " " + right.label + ";\n";
 	result.label = var;
@@ -1378,7 +1723,7 @@ node doStringConcat(string op, node left, node right) {
 	result.transl = left.transl + right.transl;
 	
 	result.type = resType;
-	decls.push_back("\tchar* " + var + ";");
+	decls.push_back("char* " + var + ";");
 	desacs.push_back(var);
 	
 	result.transl += 
@@ -1420,7 +1765,7 @@ node doSimpleAttrib(string op, node left, node right) {
 		
 		// se conversão é permitida
 		if (resType.size()) {
-			decls.push_back("\t" + info->type + " " + var + ";");
+			decls.push_back(info->type + " " + var + ";");
 			
 			result.transl = right.transl + "\t" + 
 				var + " = (" + info->type + ") " + 
@@ -1467,7 +1812,7 @@ node doStringAttrib(string op, node left, node right) {
 		
 		// se conversão é permitida
 		if (resType.size()) {
-			decls.push_back("\t" + info->type + " " + var + ";");
+			decls.push_back(info->type + " " + var + ";");
 			
 			result.transl = right.transl + "\t" + 
 				var + " = (" + info->type + ") " + 
@@ -1486,21 +1831,70 @@ node doStringAttrib(string op, node left, node right) {
 	return result;
 }
 
-string insertListOfFile()
-{
-	stringstream code;
-	string line;
-	ifstream myfile ("./util/list.dat");
-	if (myfile.is_open())
-	{
-		while ( getline (myfile,line) )
-		{
-			code << line << "\n";
-		}
-		myfile.close();
-	}
-	return code.str();
+node doTypeComparison(string op, node left, node right) {
+	node result;
+	string var = getNextVar();
+	
+	result.type = "bool";
+	decls.push_back("int " + var + ";");
+	
+	bool isSameType = left.type == right.transl;
+	
+	result.transl = left.transl + 
+	"\t" + var + " = " + to_string(isSameType? 1 : 0) + ";\n";
+	result.label = var;
+	
+	return result;
 }
+
+node doStringComparison(string op, node left, node right) {
+	node result;
+	string var = getNextVar();
+	string var2 = getNextVar();
+	string resType, tempOp = op;
+	
+	do {
+		resType = opMap[left.type + tempOp + right.type];
+		tempOp = typeMap[tempOp];
+	} while (resType.empty() && !tempOp.empty());
+	
+	if (resType.empty()) {
+		// throw compile error
+		yyerror("Relational operator '" + op + "' between types " 
+		+ left.type + " and " + right.type + " is not defined.");
+	}
+	
+	result.transl = left.transl + right.transl;
+
+	result.type = "bool";
+	decls.push_back("int " + var + ";");
+	decls.push_back("int " + var2 + ";");
+	result.transl += "\t" + var + " = strcmp(" + 
+		left.label + ", " + right.label + ");\n\t" + 
+		var2 + " = " + var + " " + op + " 0;\n";
+	result.label = var2;
+	
+	return result;
+}
+
+node doSimpleConversion(string op, node left, node right) {
+	node result;
+	string var = getNextVar();
+	string type = opMap[right.transl + "cast" + left.type];
+	
+	if (type.size()) {
+		result.type = right.transl;
+		decls.push_back(type + " " + var + ";");
+		
+		result.transl = left.transl + 
+			"\t" + var + " = (" + right.transl + ") " + left.label + ";\n";
+		result.label = var;
+	} else {
+		// throw compiler error
+		yyerror("Invalid cast from " + left.type + " to " + right.transl + ".");
+	}
+	
+	return result;
 
 node fallback(string op, node left, node right) {
 	yyerror("Operation '" + op + "' between types " 
