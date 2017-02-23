@@ -482,8 +482,8 @@ LOOP		: "while" EXPR TK_BSTART BLOCK {
 					loop_info* loop = getLoop();
 					
 					$$.transl = loop->start + ":\n" 
-						+ loop->increment + ":" + $2.transl
-						+ $4.transl + "\tif (" 
+						+ loop->increment + ":" + $4.transl 
+						+ $2.transl + "\tif (" 
 						+ $4.label + ") goto " + loop->start + ";\n"
 						+ loop->end + ":\n";
 				} else {
