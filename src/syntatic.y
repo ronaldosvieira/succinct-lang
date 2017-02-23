@@ -1008,7 +1008,7 @@ DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
 			}
 			;
 			
-FUNCTION	: "func" PUSH_FUNC TK_ID FUNC_PARAMS "->" TYPE 
+FUNCTION	: "func" PUSH_FUNC TK_ID FUNC_PARAMS FUNC_RETURN 
 					TK_BSTART BLOCK POP_FUNC {
 				if (funcStack != 0) {
 					yyerror("Functions can't be declared inside other functions");
@@ -1018,7 +1018,7 @@ FUNCTION	: "func" PUSH_FUNC TK_ID FUNC_PARAMS "->" TYPE
 				vector<var_info> params;
 				string paramsType = "";
 				
-				string returnType = $6.transl;
+				string returnType = $5.transl;
 				if (returnType == "string") returnType = "char*";
 				
 				for (string param : split($4.transl, ';')) {
@@ -1036,8 +1036,12 @@ FUNCTION	: "func" PUSH_FUNC TK_ID FUNC_PARAMS "->" TYPE
 				
 				$$.transl = "";
 				
-				insertFunc($3.label, {func, params, returnType, $8.transl});
+				insertFunc($3.label, {func, params, returnType, $7.transl});
 			}
+			;
+			
+FUNC_RETURN	: "->" TYPE {$$.transl = $2.transl;}
+			| {$$.transl = "void";}
 			;
 			
 FUNC_PARAMS	: FUNC_PARAMS2 {$$.transl = $1.transl;}
