@@ -1142,8 +1142,16 @@ FUNC_APPL	: TK_ID '(' FUNC_ARGS ')' {
 			}
 			;
 			
-FUNC_ARGS	: FUNC_ARGS2 {$$.transl = $1.transl;}
-			| {$$.transl = "";}
+FUNC_ARGS	: FUNC_ARGS2 {
+				$$.transl = $1.transl;
+				$$.label = $1.label;
+				$$.size = $1.size;
+			}
+			| {
+				$$.transl = "";
+				$$.label = "";
+				$$.size = 0;
+			}
 			;
 			
 FUNC_ARGS2	: EXPR ',' FUNC_ARGS2 {
