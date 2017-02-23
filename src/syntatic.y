@@ -1138,7 +1138,11 @@ FUNC_APPL	: TK_ID '(' FUNC_ARGS ')' {
 			}
 			;
 			
-FUNC_ARGS	: EXPR ',' FUNC_ARGS {
+FUNC_ARGS	: FUNC_ARGS2 {$$.transl = $1.transl;}
+			| {$$.transl = "";}
+			;
+			
+FUNC_ARGS2	: EXPR ',' FUNC_ARGS2 {
 				$$.transl = $1.transl + $3.transl;
 				$$.label = $1.type + " " + $1.label + ";" + $3.label;
 				$$.size = $3.size + 1;
