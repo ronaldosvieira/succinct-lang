@@ -1010,6 +1010,10 @@ DECL_AND_ATTR: TYPE TK_ID '=' EXPR {
 			
 FUNCTION	: "func" PUSH_FUNC TK_ID FUNC_PARAMS "->" TYPE 
 					TK_BSTART BLOCK POP_FUNC {
+				if (funcStack != 0) {
+					yyerror("Functions can't be declared inside other functions");
+				}
+				
 				string func = getNextFunc();
 				vector<var_info> params;
 				string paramsType = "";
