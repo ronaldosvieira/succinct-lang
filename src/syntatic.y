@@ -1142,9 +1142,14 @@ FUNC_APPL	: TK_ID '(' FUNC_ARGS ')' {
 					if (i < args.size() - 1) argsStr += ", ";
 				}
 				
-				decls.push_back($$.type + " " + $$.label + ";");
-				$$.transl += "\t" + var + " = " + func->label 
-					+ "(" + argsStr + ");\n";
+				if ($$.type != "void") {
+					decls.push_back($$.type + " " + $$.label + ";");
+					$$.transl += "\t" + var + " = " + func->label 
+						+ "(" + argsStr + ");\n";
+				} else {
+					$$.transl += "\t" + func->label 
+						+ "(" + argsStr + ");\n";
+				}
 			}
 			;
 			
