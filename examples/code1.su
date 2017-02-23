@@ -134,3 +134,13 @@ if "aaa" == "aaa": {
 } else: {
 	write "diferente", endl;
 }
+
+int vet[2];
+write "-----------\n";
+
+vet[0] = 1;
+vet[1] = 2;
+
+for int i = 0; i < 3; ++i: {
+	write vet[i] endl;
+}

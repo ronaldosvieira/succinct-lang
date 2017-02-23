@@ -14,6 +14,8 @@ using namespace std;
 
 /******* declarações *******/
 
+int line = 1;
+
 typedef struct attributes {
 	string label; // nome da variável usada no cód. intermediário (ex: "t0")
 	string type; // tipo no código intermediário (ex: "int")
@@ -51,6 +53,15 @@ int tempLabel = 0;
 int tempFunc = 0;
 
 int funcStack = 0;
+
+bool insert_list = false;
+int count_vector = 0;
+
+// mapa de labels de vetores
+map<string, string> vectorMap;
+
+// lista de indices de acesso a vetores
+vector<string> index_temp;
 
 // declarações de variáveis
 vector<string> decls;
@@ -136,6 +147,9 @@ vector<string> split(const string &s, char delim);
 // obtém a estratégia para os tipos e operação especificadas
 strategy getStrategy(string op, string type1, string type2);
 
+// insere a lista encadeada para mapeamento de indices no código gerado
+string insertListOfFile();
+
 /* strategy declarations */
 node doSimpleAritOp(string op, node left, node right);
 node doSimpleRelOp(string op, node left, node right);
@@ -207,6 +221,14 @@ S 			: STATEMENTS {
 				"#include <stdio.h>" << endl <<
 				"#include <stdlib.h>" << endl << endl;
 				
+				cout << endl <<"\nint line = 1;\n" << endl;
+
+				if (insert_list) {
+					cout << insertListOfFile() << endl;
+				}
+
+				cout << endl <<"\nint main(void) {" << endl;
+
 				for (string decl : decls) {
 					cout << decl << endl;
 				}
@@ -229,6 +251,16 @@ S 			: STATEMENTS {
 				for (string desac : desacs) {
 					cout << "\tfree(" << desac << ");" << endl;
 				}
+
+				for (std::map<string, string>::iterator it=vectorMap.begin(); it!=vectorMap.end(); ++it) {
+					
+					std::size_t found = it->second.find("vec_");
+
+					if (found!=std::string::npos) {
+						cout << "\tfree(" << it->second << ");" << endl;
+					}
+				}
+                       
 				
 				cout << endl << "\treturn 0;\n}" << endl;
 			};
@@ -533,21 +565,44 @@ DECLARATION : TYPE TK_ID {
 				}
 			}
 			| TYPE TK_ID DIMENSION {
+				insert_list = true;
+
 				var_info* info = findVarOnTop($2.label);
 				
 				if (info == nullptr) {
 				 	string var = getNextVar();
+				 	insertVar($2.label, {$1.transl, var, true, $3.size});
+				 	// decls.push_back($3.transl + "\t" + $1.transl + " " + var + "[" + $3.label + "];");
 					
-				 	insertVar($2.label, {$1.transl, var, true, 0});
+					vectorMap[$2.label] = "vec_" + to_string(count_vector);
+					count_vector++;
+
+					//======== Insere os dados para o mapeamento =========
+				 	string init_list = "\n\tnode *" + vectorMap[$2.label] + 
+				 			";\n\t" + vectorMap[$2.label] + 
+				 			" = (node *) malloc(sizeof(node));\n\tinit(" + 
+				 			vectorMap[$2.label] + ");\n\tif(!" + 
+				 			vectorMap[$2.label] + 
+				 			") std::cout << \"Sem memoria disponivel!\\n\";";
+				 	
+				 	for (int i = 0; i < index_temp.size(); ++i)
+					{
+						init_list += "\n\tinsetBack(" + vectorMap[$2.label] + 
+								", " + index_temp[i] + ");";
+					}
+
+					index_temp.clear();
+				 	
+					$$.transl = "\n" + $3.transl + "\n\t" + init_list + 
+							"\n\n\t" + $1.transl + " " + var +
+							"[" + $3.label + "];\n";
+					//====================================================
 					
-				 	decls.push_back($3.transl + "\t" + $1.transl + " " 
-				 		+ var + "[" + $3.label + "];");
-					$$.transl = "";
+					// TODO tratar string
 
 					$$.label = var;
 					$$.type = $1.transl;
 				} else {
-					// throw compile error
 					yyerror("Variable " + $2.label + " redeclared.");
 				}
 			}
@@ -567,33 +622,94 @@ DECLARATION : TYPE TK_ID {
 			}
 			;
 
-DIMENSION:	DIMENSION '[' EXPR ']' {
-				if ($3.type != "int") {
-					cout << "List size must be defined by integers, "
-						<< $3.type << " given.";
+DIMENSION:	DIMENSION '[' EXPR ']'
+			{
+				if($3.type != "int") {
+					yyerror("List dimensions must be defined by integers, "
+						<< $3.type << " given.");
 				}
 
 				string var = getNextVar();
-				decls.push_back("int " + var + ";");
-
-				$$.transl = $1.transl + $3.transl + "\n\t" + var + " = " 
-					+ $1.label + " * " + $3.label + ";\n";
+				decls.push_back("\tint " + var + ";");
+				index_temp.push_back($3.label);
+				$$.transl = $1.transl + $3.transl + "\n\t" + var + " = " + $1.label + " * " + $3.label + ";\n";
 				$$.label = var;
 			}
 			| '[' EXPR ']' {
-				if ($2.type != "int") {
-					cout << "List size must be defined by integers, "
-						<< $3.type << " given.";
+				if($2.type != "int") {
+					yyerror("List dimensions must be defined by integers, "
+						<< $2.type << " given.");
 				}
-				
+				index_temp.push_back($2.label);
 				$$.transl = $2.transl;
 				$$.label = $2.label;
 			}
 
+VECTOR_INDEX:	VECTOR_INDEX '[' EXPR ']'
+			{
+				if($3.type != "int") {
+					yyerror("List dimensions must be defined by integers, "
+						<< $3.type << " given.");
+				}
+
+				string var = getNextVar();
+				decls.push_back("\tint " + var + ";");
+				index_temp.push_back($3.label);
+
+				$$.transl = $1.transl + $3.transl;
+			}
+			| '[' EXPR ']' {
+				if($2.type != "int") {
+					yyerror("List dimensions must be defined by integers, "
+						<< $2.type << " given.");
+				}
+				index_temp.push_back($2.label);
+
+				$$.transl = $2.transl;
+				$$.label = $2.label;
+			}
+
+
 ATTRIBUTION	: TK_ID '=' EXPR {
-				strategy strat = getStrategy("=", $1.type, $3.type);
+				var_info* info = findVar($1.label);
+
+				strategy strat = getStrategy("=", info->type, $3.type);
 				
 				$$ = strat("=", $1, $3);
+			}
+			| TK_ID VECTOR_INDEX '=' EXPR {
+				var_info* info = findVar($1.label);
+				if (info != nullptr && info->name.size()) {
+					strategy strat = getStrategy("=", info->type, $4.type);
+					
+					string var = getNextVar();
+					decls.push_back("\tint " + var + ";");
+					vectorMap[var] = "vec_" + to_string(count_vector);
+					count_vector++;
+
+					string list = "\n\tline = " + std::to_string(line) + ";\n\tnode *" + vectorMap[var] + 
+							";\n\t" + vectorMap[var] + 
+							" = (node *) malloc(sizeof(node));\n\tinit(" + 
+							vectorMap[var] + ");\n\tif(!" + 
+							vectorMap[var] + 
+							") std::cout << \"Sem memoria disponivel!\\n\";";
+
+					for (int i = 0; i < index_temp.size(); ++i)
+					{
+						list += "\n\tinsetBack(" + vectorMap[var] + ", " + index_temp[i] + ");";
+					}
+					index_temp.clear();
+
+					$$.transl = $2.transl + $4.transl + "\n\t" + list + "\n\t" + var + 
+							" = mapper(" + vectorMap[var] + ", " + vectorMap[$1.label] + 
+							");\n\t" + info->name + "[" + var +  "] = " + $4.label + ";\n";
+					$$.type = info->type;
+					$$.size = info->size;
+
+				} else {
+					// throw compile error
+					yyerror("Variable " + $1.label + " not declared.");
+				}
 			}
 			;
 			
@@ -1141,6 +1257,59 @@ EXPR 		: EXPR '+' EXPR {
 				
 				$$ = strat("is", $1, $3);
 			}
+			| TK_ID VECTOR_INDEX {
+				/*
+				var_info* info = findVar($1.label);
+				
+				if (info != nullptr && info->name.size()) {
+					$$.type = info->type;
+					$$.label = info->name;
+					$$.size = info->size;
+
+					$$.transl = $2.transl;
+					$$.label = info->name + "[" + $2.label + "]";
+				} else {
+					// throw compile error
+					yyerror("Variable " + $1.label + " not declared.");
+				}
+				*/
+				var_info* info = findVar($1.label);
+				if (info != nullptr && info->name.size()) {
+					// strategy strat = getStrategy("=", info->type, $4.type);
+					
+					string var = getNextVar();
+					string value = getNextVar();
+					decls.push_back("\tint " + var + ";");
+					decls.push_back("\t" + info->type + " " + value + ";");
+
+					vectorMap[var] = "vec_" + to_string(count_vector);
+					count_vector++;
+
+					string list = "\n\tline = " + std::to_string(line) + ";\n\tnode *" + vectorMap[var] + 
+							";\n\t" + vectorMap[var] + 
+							" = (node *) malloc(sizeof(node));\n\tinit(" + 
+							vectorMap[var] + ");\n\tif(!" + 
+							vectorMap[var] + 
+							") std::cout << \"Sem memoria disponivel!\\n\";";
+
+					for (int i = 0; i < index_temp.size(); ++i)
+					{
+						list += "\n\tinsetBack(" + vectorMap[var] + ", " + index_temp[i] + ");";
+					}
+					index_temp.clear();
+
+					$$.transl = $2.transl + "\n\t" + list + "\n\t" + var + 
+							" = mapper(" + vectorMap[var] + ", " + vectorMap[$1.label] + 
+							");\n\t" + value + " = " + info->name + "[" + var +  "]" + ";\n";
+					$$.type = info->type;
+					$$.size = info->size;
+					$$.label = value;
+
+				} else {
+					// throw compile error
+					yyerror("Variable " + $1.label + " not declared.");
+				}
+			}
 			| INCR_OR_DECR
 			| FUNC_APPL
 			| VALUE_OR_ID
@@ -1403,6 +1572,21 @@ strategy getStrategy(string op, string type1, string type2) {
 	}
 	
 	return strategyMap[strategyName];
+}
+
+string insertListOfFile() {
+	stringstream code;
+	string line;
+	ifstream myfile ("./util/list.dat");
+	if (myfile.is_open())
+	{
+		while ( getline (myfile,line) )
+		{
+			code << line << "\n";
+		}
+		myfile.close();
+	}
+	return code.str();
 }
 
 /********** strategies **********/
@@ -1711,7 +1895,6 @@ node doSimpleConversion(string op, node left, node right) {
 	}
 	
 	return result;
-}
 
 node fallback(string op, node left, node right) {
 	yyerror("Operation '" + op + "' between types " 

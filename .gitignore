@@ -35,3 +35,5 @@ lex.yy.c
 # Yacc files
 y.tab.c
 y.tab.h
+# Compiled code
+compiled*
