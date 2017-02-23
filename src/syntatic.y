@@ -202,13 +202,13 @@ void yyerror(string);
 
 %start S
 
+%left "typeof"
 %nonassoc '<' '>' "<=" ">=" "!=" "=="
 %right "not"
 %left "and" "or" "xor"
 %left '+' '-'
 %left '*' '/'
 %left "as" "is"
-%left "typeof"
 %right "++" "--" TK_ID '('
 
 %%
@@ -589,8 +589,7 @@ DECLARATION : TYPE TK_ID {
 				 			vectorMap[$2.label] + 
 				 			") std::cout << \"Sem memoria disponivel!\\n\";";
 				 	
-				 	for (int i = 0; i < index_temp.size(); ++i)
-					{
+				 	for (int i = 0; i < index_temp.size(); ++i) {
 						init_list += "\n\tinsetBack(" + vectorMap[$2.label] + 
 								", " + index_temp[i] + ");";
 					}
@@ -600,9 +599,6 @@ DECLARATION : TYPE TK_ID {
 					$$.transl = "\n" + $3.transl + "\n\t" + init_list + 
 							"\n\n\t" + $1.transl + " " + var +
 							"[" + $3.label + "];\n";
-					//====================================================
-					
-					// TODO tratar string
 
 					$$.label = var;
 					$$.type = $1.transl;
