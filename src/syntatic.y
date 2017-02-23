@@ -237,7 +237,11 @@ S 			: STATEMENTS {
 					cout << func.type + " " + func.label + "(";
 					
 					for (int i = 0; i < func.params.size(); ++i) {
-						cout << func.params[i].type + " " + func.params[i].name;
+						string type = func.params[i].type;
+						
+						if (type == "string") type = "char*";
+						
+						cout << type + " " + func.params[i].name;
 						if (i < func.params.size() - 1) cout << ", ";
 					}
 					
@@ -1058,16 +1062,22 @@ FUNC_PARAMS2: FUNC_PARAM ',' FUNC_PARAMS2 {
 			
 FUNC_PARAM	: TYPE TK_ID {
 				string var = getNextVar();
+				string type = $1.transl;
 				
-				decls.push_back($1.transl + " " + var + ";");
+				if (type == "string") type = "char*";
+				
+				decls.push_back(type + " " + var + ";");
 				insertVar($2.label, {$1.transl, var, true, 0});
 				
 				$$.transl = $1.transl + " " + var;
 			}
 			| "const" TYPE TK_ID {
 				string var = getNextVar();
+				string type = $2.transl;
 				
-				decls.push_back($2.transl + " " + var + ";");
+				if (type == "string") type = "char*";
+				
+				decls.push_back(type + " " + var + ";");
 				insertVar($3.label, {$2.transl, var, false, 0});
 				
 				$$.transl = $2.transl + " " + var;
