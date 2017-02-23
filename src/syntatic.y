@@ -1040,7 +1040,11 @@ FUNCTION	: "func" PUSH_FUNC TK_ID FUNC_PARAMS "->" TYPE
 			}
 			;
 			
-FUNC_PARAMS	: FUNC_PARAM ',' FUNC_PARAMS {
+FUNC_PARAMS	: FUNC_PARAMS2 {$$.transl = $1.transl;}
+			| {$$.transl = "";}
+			;
+
+FUNC_PARAMS2: FUNC_PARAM ',' FUNC_PARAMS2 {
 				$$.transl = $1.transl + ";" + $3.transl;
 			}
 			| FUNC_PARAM {
