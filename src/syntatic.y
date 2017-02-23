@@ -145,6 +145,7 @@ node doSimpleAttrib(string op, node left, node right);
 node doStringAttrib(string op, node left, node right);
 node doTypeComparison(string op, node left, node right);
 node doStringComparison(string op, node left, node right);
+node doSimpleConversion(string op, node left, node right);
 node fallback(string op, node left, node right);
   
 int yylex(void);
@@ -1121,19 +1122,9 @@ EXPR 		: EXPR '+' EXPR {
 				$$.transl = $2.transl;
 			}
 			| EXPR "as" TYPE {
-				string var = getNextVar();
-				string type = opMap[$3.transl + "cast" + $1.type];
+				strategy strat = getStrategy("cast", $1.type, $3.transl);
 				
-				if (type.size()) {
-					$$.type = $3.transl;
-					decls.push_back(type + " " + var + ";");
-					$$.transl = $1.transl + 
-						"\t" + var + " = (" + $3.transl + ") " + $1.label + ";\n";
-					$$.label = var;
-				} else {
-					// throw compiler error
-					yyerror("Invalid cast from " + $1.type + " to " + $3.transl + ".");
-				}
+				$$ = strat("cast", $1, $3);
 			}
 			| "typeof" EXPR {
 				string var = getNextVar();
@@ -1281,6 +1272,7 @@ int main(int argc, char* argv[]) {
 	strategyMap["string-attrib"] = doStringAttrib;
 	strategyMap["type-comparison"] = doTypeComparison;
 	strategyMap["string-comparison"] = doStringComparison;
+	strategyMap["simple-conversion"] = doSimpleConversion;
 	
 	// insert global context
 	map<string, var_info> globalContext;
@@ -1697,6 +1689,26 @@ node doStringComparison(string op, node left, node right) {
 		left.label + ", " + right.label + ");\n\t" + 
 		var2 + " = " + var + " " + op + " 0;\n";
 	result.label = var2;
+	
+	return result;
+}
+
+node doSimpleConversion(string op, node left, node right) {
+	node result;
+	string var = getNextVar();
+	string type = opMap[right.transl + "cast" + left.type];
+	
+	if (type.size()) {
+		result.type = right.transl;
+		decls.push_back(type + " " + var + ";");
+		
+		result.transl = left.transl + 
+			"\t" + var + " = (" + right.transl + ") " + left.label + ";\n";
+		result.label = var;
+	} else {
+		// throw compiler error
+		yyerror("Invalid cast from " + left.type + " to " + right.transl + ".");
+	}
 	
 	return result;
 }
