@@ -144,6 +144,7 @@ node doStringConcat(string op, node left, node right);
 node doSimpleAttrib(string op, node left, node right);
 node doStringAttrib(string op, node left, node right);
 node doTypeComparison(string op, node left, node right);
+node doStringComparison(string op, node left, node right);
 node fallback(string op, node left, node right);
   
 int yylex(void);
@@ -1279,6 +1280,7 @@ int main(int argc, char* argv[]) {
 	strategyMap["simple-attrib"] = doSimpleAttrib;
 	strategyMap["string-attrib"] = doStringAttrib;
 	strategyMap["type-comparison"] = doTypeComparison;
+	strategyMap["string-comparison"] = doStringComparison;
 	
 	// insert global context
 	map<string, var_info> globalContext;
@@ -1665,6 +1667,36 @@ node doTypeComparison(string op, node left, node right) {
 	result.transl = left.transl + 
 	"\t" + var + " = " + to_string(isSameType? 1 : 0) + ";\n";
 	result.label = var;
+	
+	return result;
+}
+
+node doStringComparison(string op, node left, node right) {
+	node result;
+	string var = getNextVar();
+	string var2 = getNextVar();
+	string resType, tempOp = op;
+	
+	do {
+		resType = opMap[left.type + tempOp + right.type];
+		tempOp = typeMap[tempOp];
+	} while (resType.empty() && !tempOp.empty());
+	
+	if (resType.empty()) {
+		// throw compile error
+		yyerror("Relational operator '" + op + "' between types " 
+		+ left.type + " and " + right.type + " is not defined.");
+	}
+	
+	result.transl = left.transl + right.transl;
+
+	result.type = "bool";
+	decls.push_back("int " + var + ";");
+	decls.push_back("int " + var2 + ";");
+	result.transl += "\t" + var + " = strcmp(" + 
+		left.label + ", " + right.label + ");\n\t" + 
+		var2 + " = " + var + " " + op + " 0;\n";
+	result.label = var2;
 	
 	return result;
 }

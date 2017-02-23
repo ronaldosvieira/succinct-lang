@@ -128,3 +128,9 @@ auto m = "aaaa";
 write typeof m;
 
 m is string;
+
+if "aaa" == "aaa": {
+	write "igual", endl;
+} else: {
+	write "diferente", endl;
+}

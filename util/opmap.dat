@@ -88,6 +88,7 @@ bool rel float float simple-relational
 bool rel double double simple-relational
 bool rel char char simple-relational
 bool rel bool bool simple-relational
+string rel string bool string-comparison
 bool && bool bool simple-logic
 bool || bool bool simple-logic
 int cast int int null
