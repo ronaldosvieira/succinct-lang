@@ -5,7 +5,7 @@ all:
 	yacc -o bin/y.tab.c -d src/syntatic.y
 	g++ bin/y.tab.c -o bin/suc -Iinclude/ -lfl -std=c++11
 
-	./bin/suc < examples/code1.su
+	./bin/suc < examples/example1.su
 
 clean:
 	rm -rf ./bin
@@ -18,7 +18,7 @@ exec:
 	yacc -o bin/y.tab.c -d src/syntatic.y
 	g++ bin/y.tab.c -o bin/suc -Iinclude/ -lfl -std=c++11
 
-	./bin/suc < examples/code1.su > compiled.cpp
+	./bin/suc < examples/example1.su > compiled.cpp
 
 	g++ compiled.cpp -o compiled
 	./compiled
