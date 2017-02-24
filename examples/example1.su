@@ -1,0 +1,24 @@
+3; //=> int
+
+1 + 1; //=> 2
+8 - 1; //=> 7
+10 * 2; //=> 20
+35 / 5; //=> 7
+
+5 / 2; //=> 2
+
+2.0;     // Isso é um 'double'
+2.0d;	// Isso também é um 'double'
+2.0f;	// Isso é um 'float'
+11.0 / 4.0; //=> 2.75
+
+'a'; // Isso é um 'char'
+"Isso é uma string.";
+
+"Olá " + "mundo!"; //=> "Olá mundo!"
+
+1 + 3 * 2; //=> 7
+(1 + 3) * 2; //=> 8
+
+true;
+false;

@@ -1,0 +1,34 @@
+float var1 = 9.0f;
+
+int var2; // inicializada com valor padrão (0)
+var2 = 5;
+
+// int var2; // erro: variável já delclarada
+
+// var3 = 8; // erro: não declarado
+
+int var4 = 1.0; // conversão implícita
+
+typeof 1; //=> int
+typeof 1 as float; //=> float
+
+// int var5 = "string?"; // erro: tipos não compatíveis
+
+const int var6 = 10;
+// var6 = 5; // erro: atribuição em variável const
+
+// const var7; // erro: declaração de const sem valor
+
+int var7 = 1;
+write var7++, endl; //=> 1
+
+int var8 = 1;
+write ++var8, endl; //=> 2
+
+auto var9 = "automagicamente";
+typeof var9; //=> string
+
+auto var10 = 1.0f;
+typeof var10; //=> float
+
+// auto var11; // erro: declaração de auto sem valor

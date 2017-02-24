@@ -1,0 +1,55 @@
+if true: {
+	write "if", endl;
+}
+
+if false: {} 
+else: {
+	write "else", endl;
+}
+
+if false: {}
+elif true: {
+	write "elif", endl;
+} else: {}
+
+int var11 = 0;
+
+while var11 < 5: {
+	if var11 > 2: {
+		break;
+	}
+	
+	write var11, endl;
+	
+	var11++;
+}
+
+do {
+	write "do-while", endl;
+} while false;
+
+for int i = 0; i < 5; ++i: {
+	write "for1", endl;
+
+	for int j = 0; j < 5; ++j: {
+		write "for2", endl;
+
+		break all;
+	}
+}
+
+for int i = 0; i < 5; ++i: {
+	continue;
+
+	write "isso n vai ser printado", endl;
+}
+
+for int i = 0; i < 5; ++i: {
+	write "for3", endl;
+
+	for int j = 0; j < 5; ++j: {
+		write "for4", endl;
+		
+		continue all;
+	}
+}

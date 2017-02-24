@@ -1,0 +1,35 @@
+not true; //=> false
+!true; //=> false
+not false; //=> true
+!false; //=> true
+
+1 == 1; //=> true
+2 == 1; //=> false
+
+1 != 1; //=> false
+2 != 1; //=> true
+
+1 < 10; //=> true
+1 > 10; //=> false
+2 <= 2; //=> true
+2 >= 2; //=> true
+
+false || true; //=> true
+false or true; //=> true
+false && true; //=> false
+false and true; //=> false
+false xor true; //=> true
+true xor true; //=> false
+
+"foo" == "bar"; //=> false
+"a" < "z"; //=> true
+
+typeof "aaa"; //=> string
+typeof 4.0 / 3; //=> double
+
+"etc" is string; //=> true
+"etc" is int; //=> false
+7.0 is double; //=> true
+
+write "2016.2 nunca acaba! ";
+write "aaaaaaaaaaaaaa", endl;
